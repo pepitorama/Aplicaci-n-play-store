@@ -56,6 +56,13 @@ Fuentes consultadas:
 - Eventos de sistema: pico de trafico, actualizacion critica y escaneo de disco.
 - Investigacion permanente con puntos ganados por partida.
 - Modo practica sin afectar records, campana ni estadisticas.
+- Editor simple de oleadas para modo practica.
+- Desafio diario local determinista por fecha.
+- Panel de analisis por mapa: records, oleada maxima, derrotas, fugas y torres usadas.
+- Sugerencias automaticas de balance basadas en metricas locales.
+- Modo daltónico: paletas protanopia y deuteranopia.
+- Tooltips en tarjetas de mapa, dificultad y defensas.
+- Mejoras visuales de combate: auras de torres, alerta de Exploit cercano y borde de recurso critico.
 - Guardado robusto con version de perfil, validacion de importacion, backup y reset de progreso.
 - Panel de fin de partida "por que perdiste" con amenaza filtrada, recurso bajo y derrotas por mapa.
 - Metricas locales de balance sin servidor: fugas por enemigo, torres usadas, derrotas por mapa y recurso mas bajo.
@@ -103,6 +110,7 @@ Fuentes consultadas:
 - PWA con manifest, icono y service worker offline.
 - Manifest PWA con screenshots placeholder y acceso directo "Jugar" para preparacion Play Store/TWA.
 - Paginas `help.html` y `privacy.html` cacheadas offline.
+- Documentacion `ANDROID.md` y `TESTING.md`.
 
 ## Estructura
 
@@ -156,6 +164,7 @@ npm test
 - Boton texto: aumenta tamano de texto.
 - Boton practica: activa/desactiva modo sin records.
 - Boton resetear progreso: crea backup local y reinicia perfil.
+- Boton color: rota paleta normal/protanopia/deuteranopia.
 
 ## Siguientes pasos recomendados
 

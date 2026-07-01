@@ -41,6 +41,9 @@ import {
 import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "../src/progression.js";
 import { evaluateCampaign, getCampaignStatus } from "../src/campaign.js";
 import { getMapDefinition } from "../src/maps.js";
+import { getDailyChallenge, describeDailyChallenge } from "../src/dailyChallenge.js";
+import { getBalanceSuggestions, getMapAnalysis } from "../src/analysis.js";
+import { getBalanceCurve } from "../src/config/balance.js";
 
 test("places a tower only on valid build cells and charges energy", () => {
   const state = createGameState();
@@ -396,4 +399,45 @@ test("balance metrics record losses, leaks and tower usage", () => {
   assert.equal(profile.balanceMetrics.leakedByEnemy.exploit, 2);
   assert.equal(profile.balanceMetrics.towersUsed.firewall, 3);
   assert.equal(profile.balanceMetrics.lowestResource, "cpu");
+});
+
+test("daily challenge is deterministic and can modify preview size", () => {
+  const date = new Date("2026-07-01T00:00:00.000Z");
+  const challenge = getDailyChallenge(date);
+  const sameChallenge = getDailyChallenge(date);
+  const base = previewWave(5, 0, challenge.difficultyId, challenge.mapId);
+  const modified = previewWave(5, 0, challenge.difficultyId, challenge.mapId, challenge.modifier.waveSize);
+  const baseCount = Object.values(base).reduce((total, count) => total + count, 0);
+  const modifiedCount = Object.values(modified).reduce((total, count) => total + count, 0);
+
+  assert.equal(challenge.id, sameChallenge.id);
+  assert.ok(describeDailyChallenge(challenge).includes("objetivo"));
+  assert.notEqual(modifiedCount, 0);
+  assert.ok(Math.abs(modifiedCount - baseCount) <= Math.max(4, baseCount));
+});
+
+test("analysis module summarizes map records and suggestions", () => {
+  const profile = {
+    perMapStats: { classic: { bestScore: 1000, maxWave: 4, runs: 2 } },
+    balanceMetrics: {
+      lossesByMap: { classic: 2 },
+      leakedByEnemy: { exploit: 3 },
+      towersUsed: { packet: 5 },
+      lowestResource: "net"
+    }
+  };
+  const state = createGameState({ mapId: "classic" });
+  const analysis = getMapAnalysis(profile, "classic");
+  const suggestions = getBalanceSuggestions(profile, state);
+
+  assert.equal(analysis.bestScore, 1000);
+  assert.equal(analysis.topLeak.name, ENEMY_TYPES.exploit.name);
+  assert.ok(suggestions.length > 0);
+});
+
+test("balance curves expose map-specific pacing", () => {
+  const classic = getBalanceCurve("classic");
+  const hardLine = getBalanceCurve("hardLine");
+
+  assert.notEqual(classic.enemyHealthPerWave, hardLine.enemyHealthPerWave);
 });

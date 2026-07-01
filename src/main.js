@@ -31,6 +31,7 @@ import {
   recordNewRun,
   saveProfile,
   setHighContrast,
+  setColorMode,
   setLargeText,
   setMuted,
   setPreferredMap,
@@ -42,6 +43,8 @@ import {
 } from "./storage.js";
 import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "./progression.js";
 import { evaluateCampaign, getCampaignStatus } from "./campaign.js";
+import { getDailyChallenge } from "./dailyChallenge.js";
+import { getBalanceSuggestions, getMapAnalysis } from "./analysis.js";
 
 const canvas = document.querySelector("#game-canvas");
 const renderer = createRenderer(canvas);
@@ -64,6 +67,7 @@ let runRecorded = false;
 let isPaused = false;
 let speedMultiplier = 1;
 let gameOverShown = false;
+let activeDailyChallenge = null;
 
 const sound = new SoundEngine({ muted: profile.muted });
 const ui = createUi(elements, {
@@ -71,6 +75,7 @@ const ui = createUi(elements, {
   onRestart: () => restartGame(),
   onToggleMute: () => toggleMute(),
   onToggleContrast: () => toggleContrast(),
+  onToggleColorMode: () => toggleColorMode(),
   onToggleReducedMotion: () => toggleReducedMotion(),
   onToggleLargeText: () => toggleLargeText(),
   onTogglePractice: () => togglePractice(),
@@ -88,7 +93,9 @@ const ui = createUi(elements, {
   onImportProgress: () => importProgressFromPrompt(),
   onGameOverRetry: () => restartGame(),
   onCampaignStep: (step) => chooseCampaignStep(step),
-  onBuyResearch: (upgradeId) => buyResearch(upgradeId)
+  onBuyResearch: (upgradeId) => buyResearch(upgradeId),
+  onStartDaily: () => startDailyChallenge(),
+  onStartPracticeWave: (options) => startPracticeWave(options)
 });
 
 bindCanvas();
@@ -101,7 +108,8 @@ function createStateFromProfile() {
   const nextState = createGameState({
     difficultyId: profile.difficultyId,
     mapId: profile.mapId,
-    upgrades: profile.researchUpgrades
+    upgrades: profile.researchUpgrades,
+    dailyModifier: activeDailyChallenge?.modifier || null
   });
   nextState.unlockedTowerTypes = Array.from(
     new Set([...(nextState.unlockedTowerTypes || []), ...(profile.unlockedTowerTypes || [])])
@@ -192,7 +200,7 @@ function loop(timestamp) {
     gameOverShown = true;
   }
 
-  renderer.render(state, { selectedTowerId, effects });
+  renderer.render(state, { selectedTowerId, effects, colorMode: profile.colorMode });
   renderUi();
   requestAnimationFrame(loop);
 }
@@ -293,6 +301,14 @@ function toggleContrast() {
   renderUi();
 }
 
+function toggleColorMode() {
+  const modes = ["default", "protanopia", "deuteranopia"];
+  const currentIndex = modes.indexOf(profile.colorMode || "default");
+  profile = setColorMode(profile, modes[(currentIndex + 1) % modes.length]);
+  applyAccessibilityPreferences();
+  renderUi();
+}
+
 function toggleReducedMotion() {
   profile = setReducedMotion(profile, !profile.reducedMotion);
   applyAccessibilityPreferences();
@@ -345,6 +361,43 @@ function chooseCampaignStep(step) {
   chooseDifficulty(step.difficultyId);
   chooseMap(step.mapId);
   state.message = `Campana: ${step.title}. Objetivo: oleada ${step.goalWave}.`;
+  renderUi();
+}
+
+function startDailyChallenge() {
+  if (state.wave > 0 || state.towers.length > 0 || state.activeWave) {
+    state.message = "Reinicia antes de iniciar el desafio diario.";
+    renderUi();
+    return;
+  }
+  activeDailyChallenge = getDailyChallenge();
+  chooseDifficulty(activeDailyChallenge.difficultyId);
+  chooseMap(activeDailyChallenge.mapId);
+  state.dailyModifier = activeDailyChallenge.modifier;
+  state.message = `Desafio diario: ${activeDailyChallenge.modifier.name}. Objetivo oleada ${activeDailyChallenge.objective}.`;
+  renderUi();
+}
+
+function startPracticeWave(options) {
+  if (!profile.practiceMode) {
+    state.message = "Activa modo practica para usar el editor de oleadas.";
+    renderUi();
+    return;
+  }
+  if (state.activeWave || state.enemies.length > 0) {
+    state.message = "Espera a terminar la oleada actual antes de probar otra.";
+    renderUi();
+    return;
+  }
+  const wave = Math.max(1, Number(options.wave || 1));
+  state.wave = wave - 1;
+  startNextWave(state);
+  if (options.enemyType && options.enemyType !== "mixed") {
+    state.waveQueue = state.waveQueue.map((item) => ({ ...item, typeId: options.enemyType }));
+  }
+  state.waveTotal = state.waveQueue.length;
+  state.message = `Practica: oleada ${wave} con ${options.enemyType === "mixed" ? "mezcla de amenazas" : options.enemyType}.`;
+  processEvents();
   renderUi();
 }
 
@@ -478,12 +531,16 @@ function renderUi() {
     speedMultiplier,
     missions: evaluateMissions(profile, state).missionStates,
     campaign: getCampaignStatus(profile),
-    researchUpgrades: RESEARCH_UPGRADES
+    researchUpgrades: RESEARCH_UPGRADES,
+    dailyChallenge: activeDailyChallenge || getDailyChallenge(),
+    balanceSuggestions: getBalanceSuggestions(profile, state),
+    mapAnalysis: getMapAnalysis(profile, state.mapId)
   });
 }
 
 function applyAccessibilityPreferences() {
   document.body.classList.toggle("high-contrast", Boolean(profile.highContrast));
+  document.body.dataset.colorMode = profile.colorMode || "default";
   document.body.classList.toggle("reduced-motion", Boolean(profile.reducedMotion));
   document.body.classList.toggle("large-text", Boolean(profile.largeText));
 }

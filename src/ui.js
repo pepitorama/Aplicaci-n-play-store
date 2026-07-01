@@ -39,6 +39,7 @@ export function createUi(elements, callbacks) {
   elements.restart.addEventListener("click", callbacks.onRestart);
   elements.muteToggle.addEventListener("click", callbacks.onToggleMute);
   elements.contrastToggle.addEventListener("click", callbacks.onToggleContrast);
+  elements.colorToggle.addEventListener("click", callbacks.onToggleColorMode);
   elements.motionToggle.addEventListener("click", callbacks.onToggleReducedMotion);
   elements.textToggle.addEventListener("click", callbacks.onToggleLargeText);
   elements.practiceToggle.addEventListener("click", callbacks.onTogglePractice);
@@ -49,6 +50,13 @@ export function createUi(elements, callbacks) {
   elements.exportProgress.addEventListener("click", callbacks.onExportProgress);
   elements.importProgress.addEventListener("click", callbacks.onImportProgress);
   elements.resetProgress.addEventListener("click", callbacks.onResetProgress);
+  elements.dailyStart.addEventListener("click", callbacks.onStartDaily);
+  elements.practiceStart.addEventListener("click", () => {
+    callbacks.onStartPracticeWave({
+      wave: elements.practiceWave.value,
+      enemyType: elements.practiceEnemy.value
+    });
+  });
   elements.gameOverRetry.addEventListener("click", callbacks.onGameOverRetry);
   elements.gameOverClose.addEventListener("click", () => {
     elements.gameOverPanel.hidden = true;
@@ -115,6 +123,10 @@ export function createUi(elements, callbacks) {
       }
       renderResources(elements, state);
       renderStrategy(elements, state);
+      renderDaily(elements, session.dailyChallenge);
+      renderMapAnalysis(elements, session.mapAnalysis);
+      renderSuggestions(elements, session.balanceSuggestions || []);
+      renderPracticeOptions(elements);
       renderProfile(elements, profile);
     },
     showRewards(state) {
@@ -163,6 +175,7 @@ export function collectUiElements() {
     sellTower: document.querySelector("#sell-tower"),
     muteToggle: document.querySelector("#mute-toggle"),
     contrastToggle: document.querySelector("#contrast-toggle"),
+    colorToggle: document.querySelector("#color-toggle"),
     motionToggle: document.querySelector("#motion-toggle"),
     textToggle: document.querySelector("#text-toggle"),
     practiceToggle: document.querySelector("#practice-toggle"),
@@ -175,6 +188,13 @@ export function collectUiElements() {
     campaignList: document.querySelector("#campaign-list"),
     researchList: document.querySelector("#research-list"),
     strategyPanel: document.querySelector("#strategy-panel"),
+    dailyPanel: document.querySelector("#daily-panel"),
+    dailyStart: document.querySelector("#daily-start"),
+    mapAnalysis: document.querySelector("#map-analysis"),
+    suggestionList: document.querySelector("#suggestion-list"),
+    practiceWave: document.querySelector("#practice-wave"),
+    practiceEnemy: document.querySelector("#practice-enemy"),
+    practiceStart: document.querySelector("#practice-start"),
     exportProgress: document.querySelector("#export-progress"),
     importProgress: document.querySelector("#import-progress"),
     resetProgress: document.querySelector("#reset-progress"),
@@ -205,6 +225,7 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.preview.innerHTML = previewHtml(state);
   elements.muteToggle.textContent = profile.muted ? "Sonido: OFF" : "Sonido: ON";
   elements.contrastToggle.textContent = profile.highContrast ? "Contraste: Alto" : "Contraste";
+  elements.colorToggle.textContent = `Color: ${profile.colorMode || "default"}`;
   elements.motionToggle.textContent = profile.reducedMotion ? "Movimiento: Bajo" : "Movimiento";
   elements.textToggle.textContent = profile.largeText ? "Texto: Grande" : "Texto";
   elements.practiceToggle.textContent = profile.practiceMode ? "Práctica: ON" : "Práctica";
@@ -239,6 +260,7 @@ function renderDifficultyCards(elements, state, onDifficulty) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `difficulty-card ${state.difficultyId === difficulty.id ? "selected" : ""}`;
+    button.title = `Dificultad ${difficulty.name}: ${difficulty.startingMoney} energia, ${difficulty.startingLives} integridad.`;
     button.disabled = state.wave > 0 || state.towers.length > 0 || state.activeWave;
     button.innerHTML = `
       <strong>${difficulty.name}</strong>
@@ -257,6 +279,7 @@ function renderMapCards(elements, state, profile, onMap) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `map-card ${state.mapId === map.id ? "selected" : ""}`;
+    button.title = `${map.name}: ${map.description}`;
     button.disabled = state.wave > 0 || state.towers.length > 0 || state.activeWave;
     button.innerHTML = `
       <strong>${map.name}</strong>
@@ -276,6 +299,7 @@ function renderTowerCards(elements, state, onTowerSelect) {
     const button = document.createElement("button");
     button.type = "button";
     button.disabled = !unlocked;
+    button.title = unlocked ? tower.description : `Bloqueada hasta oleada ${tower.unlockWave}`;
     button.className = `tower-card ${state.selectedTowerType === tower.id ? "selected" : ""} ${unlocked ? "" : "locked"}`;
     button.innerHTML = `
       <span class="tower-chip" style="--tower-color:${tower.color}">${tower.shortName}</span>
@@ -389,6 +413,58 @@ function renderStrategy(elements, state) {
   `;
 }
 
+function renderDaily(elements, challenge) {
+  if (!challenge) {
+    elements.dailyPanel.innerHTML = "<p>Sin desafio disponible.</p>";
+    return;
+  }
+  elements.dailyPanel.innerHTML = `
+    <p><strong>${challenge.date}</strong> - ${challenge.modifier.name}</p>
+    <p>Mapa: ${MAPS[challenge.mapId]?.name || challenge.mapId} | Dificultad: ${challenge.difficultyId}</p>
+    <p>Objetivo: alcanzar oleada ${challenge.objective}. ${challenge.modifier.description}</p>
+  `;
+}
+
+function renderMapAnalysis(elements, analysis) {
+  if (!analysis?.map) {
+    elements.mapAnalysis.innerHTML = "<p>Sin datos del mapa.</p>";
+    return;
+  }
+  elements.mapAnalysis.innerHTML = `
+    <p><strong>${analysis.map.name}</strong></p>
+    <p>Record: ${analysis.bestScore} | Max. oleada: ${analysis.maxWave} | Partidas: ${analysis.runs} | Derrotas: ${analysis.losses}</p>
+    <p>Fuga frecuente: ${analysis.topLeak ? `${analysis.topLeak.name} (${analysis.topLeak.count})` : "sin datos"}</p>
+    <p>Torre mas usada: ${analysis.topTower ? `${analysis.topTower.name} (${analysis.topTower.count})` : "sin datos"}</p>
+  `;
+}
+
+function renderSuggestions(elements, suggestions) {
+  elements.suggestionList.innerHTML =
+    suggestions.length > 0
+      ? suggestions
+          .map(
+            (suggestion) => `
+              <article class="progress-item">
+                <strong>Sugerencia</strong>
+                <span>${suggestion}</span>
+              </article>
+            `
+          )
+          .join("")
+      : `<article class="progress-item complete"><strong>Sin alertas</strong><span>Tu balance local no muestra problemas repetidos todavia.</span></article>`;
+}
+
+function renderPracticeOptions(elements) {
+  if (elements.practiceEnemy.options.length > 0) {
+    return;
+  }
+  const options = [
+    ["mixed", "Mezcla normal"],
+    ...Object.values(ENEMY_TYPES).map((enemy) => [enemy.id, enemy.name])
+  ];
+  elements.practiceEnemy.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+}
+
 function renderRewards(elements, state, onReward) {
   const rewards = [
     ["cache", "Cache tactica", "+45 energia para decidir rapido."],
@@ -413,7 +489,7 @@ function renderRewards(elements, state, onReward) {
 
 function previewHtml(state) {
   const nextWave = state.activeWave ? state.wave : state.wave + 1;
-  return Object.entries(previewWave(nextWave, state.lastWaveLeaks, state.difficultyId, state.mapId))
+  return Object.entries(previewWave(nextWave, state.lastWaveLeaks, state.difficultyId, state.mapId, state.dailyModifier?.waveSize || 1))
     .map(([typeId, count]) => {
       const enemy = ENEMY_TYPES[typeId];
       return `<span class="preview-pill" style="--enemy-color:${enemy.color}">${enemy.name}: ${count}</span>`;

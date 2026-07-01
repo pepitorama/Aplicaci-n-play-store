@@ -41,6 +41,18 @@ body.large-text {
   font-size: 112%;
 }
 
+body[data-color-mode="protanopia"] {
+  --accent: #00d8ff;
+  --accent-2: #ffd86a;
+  --danger: #ff8c42;
+}
+
+body[data-color-mode="deuteranopia"] {
+  --accent: #66aaff;
+  --accent-2: #ffcc66;
+  --danger: #ff6a9c;
+}
+
 body.reduced-motion *,
 body.reduced-motion *::before,
 body.reduced-motion *::after {
@@ -400,6 +412,33 @@ button:disabled {
   color: var(--text);
 }
 
+.practice-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.practice-editor label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.practice-editor input,
+.practice-editor select {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 10px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.practice-editor button {
+  grid-column: 1 / -1;
+  min-height: 42px;
+}
+
 details {
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -626,6 +665,10 @@ kbd {
   }
 
   .utility-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-editor {
     grid-template-columns: 1fr;
   }
 }

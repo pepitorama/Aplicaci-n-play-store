@@ -417,6 +417,7 @@ export function createGameState(options = {}) {
     difficultyId: difficulty.id,
     mapId: map.id,
     path: map.path,
+    dailyModifier: options.dailyModifier || null,
     selectedTowerType: "packet",
     nextTowerId: 1,
     nextEnemyId: 1,
@@ -566,13 +567,16 @@ export function sellTower(state, towerId) {
   return true;
 }
 
-export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID) {
+export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID, waveSizeModifier = 1) {
   const difficulty = getDifficultyPreset(difficultyId);
   const map = getMapDefinition(mapId);
   const difficultyRelief = leaksLastWave >= 3 ? -1 : 0;
   const adjustedWave = Math.max(1, waveNumber + difficultyRelief);
   const queue = [];
-  const baseCount = Math.max(3, Math.round((5 + adjustedWave * 1.8) * difficulty.waveSize * (map.modifiers?.waveSize || 1)));
+  const baseCount = Math.max(
+    3,
+    Math.round((5 + adjustedWave * 1.8) * difficulty.waveSize * (map.modifiers?.waveSize || 1) * waveSizeModifier)
+  );
 
   for (let index = 0; index < baseCount; index += 1) {
     const isDdos = adjustedWave >= 2 && index % 7 === 2;
@@ -606,8 +610,8 @@ export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal"
   return queue;
 }
 
-export function previewWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID) {
-  return buildWave(waveNumber, leaksLastWave, difficultyId, mapId).reduce((summary, item) => {
+export function previewWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID, waveSizeModifier = 1) {
+  return buildWave(waveNumber, leaksLastWave, difficultyId, mapId, waveSizeModifier).reduce((summary, item) => {
     summary[item.typeId] = (summary[item.typeId] || 0) + 1;
     return summary;
   }, {});
@@ -620,7 +624,7 @@ export function startNextWave(state) {
 
   state.wave += 1;
   state.maxWaveReached = Math.max(state.maxWaveReached, state.wave);
-  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks, state.difficultyId, state.mapId);
+  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks, state.difficultyId, state.mapId, state.dailyModifier?.waveSize || 1);
   state.waveTotal = state.waveQueue.length;
   state.waveResolved = 0;
   state.spawnedThisWave = 0;
@@ -712,12 +716,14 @@ function spawnEnemies(state, deltaSeconds) {
         type.speed *
         difficulty.enemySpeed *
         (map.modifiers?.enemySpeed || 1) *
+        (state.dailyModifier?.enemySpeed || 1) *
         (state.systemEvent?.enemySpeed || 1) *
         (1 + Math.min(curve.enemySpeedCap, state.wave * curve.enemySpeedPerWave)),
       reward: Math.round(
         type.reward *
           difficulty.reward *
           (map.modifiers?.reward || 1) *
+          (state.dailyModifier?.reward || 1) *
           (state.systemEvent?.reward || 1) *
           (1 + state.wave * 0.04)
       ),

@@ -11,6 +11,7 @@ export const DEFAULT_PROFILE = {
   guidedTutorialComplete: false,
   muted: false,
   highContrast: false,
+  colorMode: "default",
   reducedMotion: false,
   largeText: false,
   difficultyId: "normal",
@@ -186,6 +187,12 @@ export function setMuted(profile, muted) {
 
 export function setHighContrast(profile, highContrast) {
   const nextProfile = { ...profile, highContrast };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function setColorMode(profile, colorMode) {
+  const nextProfile = { ...profile, colorMode };
   saveProfile(nextProfile);
   return nextProfile;
 }

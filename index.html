@@ -73,6 +73,7 @@
             <button id="restart" type="button">Reiniciar</button>
             <button id="mute-toggle" type="button">Sonido: ON</button>
             <button id="contrast-toggle" type="button">Contraste</button>
+            <button id="color-toggle" type="button">Color</button>
             <button id="motion-toggle" type="button">Movimiento</button>
             <button id="text-toggle" type="button">Texto</button>
             <button id="practice-toggle" type="button">Práctica</button>
@@ -98,29 +99,55 @@
         </section>
 
         <section>
-          <h2>3. Estrategia del mapa</h2>
+          <h2>3. Desafío diario</h2>
+          <div id="daily-panel" class="strategy-panel"></div>
+          <button id="daily-start" type="button">Iniciar desafío diario</button>
+        </section>
+
+        <section>
+          <h2>4. Análisis del mapa</h2>
+          <div id="map-analysis" class="strategy-panel"></div>
+        </section>
+
+        <section>
+          <h2>5. Estrategia del mapa</h2>
           <div id="strategy-panel" class="strategy-panel"></div>
         </section>
 
         <section>
-          <h2>4. Elige defensa</h2>
+          <h2>6. Elige defensa</h2>
           <div id="tower-cards" class="tower-cards"></div>
           <p id="selected-info" class="hint"></p>
         </section>
 
         <section>
-          <h2>5. Lee la proxima amenaza</h2>
+          <h2>7. Lee la proxima amenaza</h2>
           <div id="wave-preview" class="preview-list"></div>
           <p class="hint">Pulsa espacio para iniciar. Usa teclas numericas para defensas, P pausa, F velocidad y T prioridad.</p>
         </section>
 
         <section class="attention-list">
-          <h2>6. Investigación permanente</h2>
+          <h2>8. Editor de práctica</h2>
+          <div class="practice-editor">
+            <label>Oleada <input id="practice-wave" type="number" min="1" max="30" value="5"></label>
+            <label>Enemigo <select id="practice-enemy"></select></label>
+            <button id="practice-start" type="button">Probar oleada</button>
+          </div>
+          <p class="hint">Activa modo práctica antes de usar el editor.</p>
+        </section>
+
+        <section class="attention-list">
+          <h2>9. Sugerencias automáticas</h2>
+          <div id="suggestion-list" class="progress-list"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>10. Investigación permanente</h2>
           <div id="research-list" class="progress-list"></div>
         </section>
 
         <section class="attention-list">
-          <h2>7. Misiones y logros</h2>
+          <h2>11. Misiones y logros</h2>
           <div id="mission-list" class="progress-list"></div>
           <div id="achievement-list" class="progress-list"></div>
           <div class="utility-actions">
@@ -131,7 +158,7 @@
         </section>
 
         <section class="attention-list">
-          <h2>8. Ayuda y privacidad</h2>
+          <h2>12. Ayuda y privacidad</h2>
           <details>
             <summary>Ayuda rapida</summary>
             <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza. <a href="./help.html">Abrir ayuda completa</a>.</p>
@@ -143,7 +170,7 @@
         </section>
 
         <section class="attention-list">
-          <h2>9. Bucle de atencion</h2>
+          <h2>13. Bucle de atencion</h2>
           <ol>
             <li>Plan breve antes de la oleada.</li>
             <li>Feedback visual inmediato al disparar.</li>

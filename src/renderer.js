@@ -6,15 +6,17 @@ export function createRenderer(canvas) {
   canvas.height = GRID.rows * GRID.cellSize;
 
   return {
-    render(state, { selectedTowerId = null, effects = [] } = {}) {
+    render(state, { selectedTowerId = null, effects = [], colorMode = "default" } = {}) {
       drawBackground(ctx, canvas);
       drawPath(ctx, state.path || PATH);
       drawBuildHints(ctx, state);
+      drawAuras(ctx, state, colorMode);
       drawSelectedRange(ctx, state, selectedTowerId);
-      drawTowers(ctx, state, selectedTowerId);
-      drawEnemies(ctx, state);
+      drawTowers(ctx, state, selectedTowerId, colorMode);
+      drawEnemies(ctx, state, colorMode);
       drawEffects(ctx, effects);
       drawCore(ctx, state);
+      drawResourceWarning(ctx, state);
     }
   };
 }
@@ -97,14 +99,34 @@ function drawSelectedRange(ctx, state, selectedTowerId) {
   ctx.stroke();
 }
 
-function drawTowers(ctx, state, selectedTowerId) {
+function drawAuras(ctx, state, colorMode) {
+  state.towers.forEach((tower) => {
+    const type = TOWER_TYPES[tower.typeId];
+    if (!type.auraRadius && !type.splashRadius) {
+      return;
+    }
+    const radius = (type.auraRadius || type.splashRadius) + tower.level * 8;
+    ctx.beginPath();
+    ctx.arc(tower.x, tower.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = `${resolveColor(type.color, colorMode)}10`;
+    ctx.strokeStyle = `${resolveColor(type.color, colorMode)}55`;
+    ctx.setLineDash([5, 8]);
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
+function drawTowers(ctx, state, selectedTowerId, colorMode) {
   state.towers.forEach((tower) => {
     const type = TOWER_TYPES[tower.typeId];
     const selected = tower.id === selectedTowerId;
     ctx.beginPath();
     ctx.arc(tower.x, tower.y, selected ? 23 : 19, 0, Math.PI * 2);
-    ctx.fillStyle = type.color;
-    ctx.shadowColor = type.color;
+    const color = resolveColor(type.color, colorMode);
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
     ctx.shadowBlur = selected ? 24 : 12;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -119,7 +141,7 @@ function drawTowers(ctx, state, selectedTowerId) {
 
     const target = state.enemies.find((enemy) => enemy.id === tower.targetId);
     if (target && performance.now() - tower.lastShotTime < 110) {
-      ctx.strokeStyle = type.color;
+      ctx.strokeStyle = color;
       ctx.lineWidth = tower.typeId === "tesla" ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(tower.x, tower.y);
@@ -130,14 +152,17 @@ function drawTowers(ctx, state, selectedTowerId) {
   ctx.textAlign = "start";
 }
 
-function drawEnemies(ctx, state) {
+function drawEnemies(ctx, state, colorMode) {
+  const path = state.path || PATH;
+  const end = cellToPoint(path[path.length - 1].col, path[path.length - 1].row);
   state.enemies.forEach((enemy) => {
     const type = ENEMY_TYPES[enemy.typeId];
     const radius = enemy.typeId === "botnet" || enemy.typeId === "ransomware" || enemy.typeId === "rootkit" ? 17 : enemy.typeId === "ddos" ? 10 : 13;
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = type.color;
-    ctx.shadowColor = type.color;
+    const color = resolveColor(type.color, colorMode);
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
     ctx.shadowBlur = 14;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -159,6 +184,13 @@ function drawEnemies(ctx, state) {
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(enemy.x, enemy.y, radius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (enemy.typeId === "exploit" && Math.hypot(enemy.x - end.x, enemy.y - end.y) < GRID.cellSize * 2.5) {
+      ctx.strokeStyle = "#ff1f4f";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, radius + 8, 0, Math.PI * 2);
       ctx.stroke();
     }
   });
@@ -197,4 +229,41 @@ function drawCore(ctx, state) {
   ctx.textAlign = "center";
   ctx.fillText("CPU", core.x, core.y + 4);
   ctx.textAlign = "start";
+}
+
+function drawResourceWarning(ctx, state) {
+  const lowResources = Object.entries(state.resources || {}).filter(([, value]) => value < 30);
+  if (lowResources.length === 0) {
+    return;
+  }
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 93, 115, 0.85)";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, GRID.cols * GRID.cellSize - 8, GRID.rows * GRID.cellSize - 8);
+  ctx.fillStyle = "#ff5d73";
+  ctx.font = "700 14px Inter, system-ui, sans-serif";
+  ctx.fillText(`Recurso critico: ${lowResources.map(([id]) => id.toUpperCase()).join(", ")}`, 16, GRID.rows * GRID.cellSize - 18);
+  ctx.restore();
+}
+
+function resolveColor(color, colorMode) {
+  if (colorMode === "protanopia") {
+    return shiftColor(color, 0.8, 1.05, 1.12);
+  }
+  if (colorMode === "deuteranopia") {
+    return shiftColor(color, 1.05, 0.82, 1.12);
+  }
+  return color;
+}
+
+function shiftColor(color, redMultiplier, greenMultiplier, blueMultiplier) {
+  const value = color.replace("#", "");
+  const red = Math.min(255, Math.round(parseInt(value.slice(0, 2), 16) * redMultiplier));
+  const green = Math.min(255, Math.round(parseInt(value.slice(2, 4), 16) * greenMultiplier));
+  const blue = Math.min(255, Math.round(parseInt(value.slice(4, 6), 16) * blueMultiplier));
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+}
+
+function toHex(value) {
+  return value.toString(16).padStart(2, "0");
 }
