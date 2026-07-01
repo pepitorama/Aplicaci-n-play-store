@@ -47,6 +47,7 @@ Fuentes consultadas:
 - Tablero canvas 14x9 con ruta visible.
 - Tutorial inicial de tres pasos para reducir friccion en la primera partida.
 - Dificultad seleccionable: facil, normal y dificil.
+- Selector de mapas: Nucleo clasico, Circuito largo, Cache angular y Linea dura.
 - Tres defensas:
   - **Analizador:** rapido y equilibrado.
   - **Firewall:** dano alto contra enemigos resistentes.
@@ -63,6 +64,10 @@ Fuentes consultadas:
 - Barra de progreso de oleada.
 - Pausa y velocidad de simulacion x1/x2/x3 para probar estrategias en PC.
 - Prioridad de objetivo por torre: primero, fuerte, rapido o debil.
+- Venta de torres con devolucion parcial de energia.
+- Misiones y logros locales para aumentar rejugabilidad.
+- Pantalla de fin de simulacion con resumen de partida.
+- Exportar/importar progreso en JSON.
 - Economia por energia, upgrades, puntuacion e integridad del nucleo.
 - Micro-recompensas tras cada oleada.
 - Ajuste de dificultad si la oleada anterior tuvo muchas fugas.
@@ -78,6 +83,8 @@ src/
   audio.js       Sonidos sinteticos y mute.
   gameLogic.js   Motor: oleadas, torres, enemigos, economia y dificultad.
   main.js        Coordinador entre UI, motor, render, audio y persistencia.
+  maps.js        Definiciones de mapas y rutas.
+  progression.js Misiones, logros y evaluacion de progreso.
   renderer.js    Dibujo del canvas y efectos visuales.
   storage.js     Perfil local con localStorage.
   ui.js          HUD, tutorial, recompensas, dificultad y tarjetas.
@@ -112,10 +119,12 @@ npm test
 - `P`: pausar/reanudar.
 - `F`: cambiar velocidad x1/x2/x3.
 - `T`: cambiar prioridad de la torre seleccionada.
+- Boton vender: vende la torre seleccionada.
 - Boton de sonido: activar/desactivar efectos.
 
 ## Siguientes pasos recomendados
 
 - Balancear costos, dano y velocidad con sesiones de prueba reales.
-- Anadir mas mapas sin tocar el motor principal.
+- Anadir mas mapas en `src/maps.js` sin tocar el motor principal.
+- Anadir nuevas misiones/logros en `src/progression.js`.
 - Convertir en Android con Trusted Web Activity, Capacitor o un proyecto nativo si se decide llevarlo a Play Store.

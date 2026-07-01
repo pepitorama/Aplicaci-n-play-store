@@ -11,15 +11,20 @@ import {
   cellToPoint,
   createGameState,
   cycleTowerTargetMode,
+  getTowerSellValue,
   getWaveProgress,
   isTowerUnlocked,
   placeTower,
   previewWave,
+  sellTower,
   setDifficulty,
+  setMap,
   startNextWave,
   updateGame,
   upgradeTower
 } from "../src/gameLogic.js";
+import { exportProfile, importProfile } from "../src/storage.js";
+import { evaluateAchievements, evaluateMissions } from "../src/progression.js";
 
 test("places a tower only on valid build cells and charges energy", () => {
   const state = createGameState();
@@ -160,4 +165,54 @@ test("tower target mode can cycle and prioritize strong enemies", () => {
 
   updateGame(state, 0);
   assert.equal(tower.targetId, 2);
+});
+
+test("map can be changed before a run and blocks path placement on the selected map", () => {
+  const state = createGameState();
+
+  assert.equal(setMap(state, "hardLine"), true);
+  assert.equal(state.mapId, "hardLine");
+  assert.equal(placeTower(state, 2, 4, "packet"), false, "selected map path cells are blocked");
+  assert.equal(placeTower(state, 1, 1, "packet"), true);
+  assert.equal(setMap(state, "classic"), false, "map is locked after building");
+});
+
+test("selling a tower refunds part of invested energy", () => {
+  const state = createGameState();
+  state.money = 500;
+  assert.equal(placeTower(state, 1, 1, "firewall"), true);
+  const tower = state.towers[0];
+  const refund = getTowerSellValue(tower);
+
+  assert.equal(sellTower(state, tower.id), true);
+  assert.equal(state.towers.length, 0);
+  assert.ok(state.money >= 500 - TOWER_TYPES.firewall.cost + refund);
+});
+
+test("missions, achievements and profile import/export are evaluated safely", () => {
+  const state = createGameState();
+  state.money = 500;
+  placeTower(state, 1, 1, "packet");
+  state.maxWaveReached = 5;
+  state.perfectWaves = 2;
+  state.totalKills = 100;
+  state.killsByType.spyware = 20;
+  state.unlockedTowerTypes.push("tesla");
+
+  const profile = {
+    achievements: [],
+    completedMissions: [],
+    unlockedTowerTypes: ["packet", "firewall", "freezer"],
+    mapsPlayed: ["classic", "hardLine"]
+  };
+  const achievements = evaluateAchievements(profile, state);
+  const missions = evaluateMissions(profile, state);
+  const serialized = exportProfile({ ...profile, achievements: achievements.achievements });
+  const imported = importProfile(serialized);
+
+  assert.ok(achievements.achievements.includes("firstDefense"));
+  assert.ok(achievements.achievements.includes("sentinelUnlocked"));
+  assert.ok(missions.completedMissions.includes("surviveFive"));
+  assert.ok(missions.completedMissions.includes("spywareSweep"));
+  assert.ok(imported.achievements.includes("firstDefense"));
 });

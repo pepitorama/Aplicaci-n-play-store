@@ -6,10 +6,12 @@ import {
   createGameState,
   cycleTowerTargetMode,
   drainEvents,
-  isPathCell,
+  isPathCellForState,
   isTowerUnlocked,
   placeTower,
+  sellTower,
   setDifficulty,
+  setMap,
   startNextWave,
   towerAt,
   updateGame,
@@ -19,13 +21,17 @@ import { SoundEngine } from "./audio.js";
 import { createRenderer } from "./renderer.js";
 import { collectUiElements, createUi } from "./ui.js";
 import {
+  exportProfile,
+  importProfile,
   loadProfile,
   markTutorialSeen,
   recordNewRun,
   saveProfile,
   setMuted,
+  setPreferredMap,
   updateProfileFromState
 } from "./storage.js";
+import { evaluateAchievements, evaluateMissions } from "./progression.js";
 
 const canvas = document.querySelector("#game-canvas");
 const renderer = createRenderer(canvas);
@@ -40,6 +46,7 @@ let effects = [];
 let runRecorded = false;
 let isPaused = false;
 let speedMultiplier = 1;
+let gameOverShown = false;
 
 const sound = new SoundEngine({ muted: profile.muted });
 const ui = createUi(elements, {
@@ -52,7 +59,12 @@ const ui = createUi(elements, {
   onTutorialDone: () => completeTutorial(),
   onTogglePause: () => togglePause(),
   onToggleSpeed: () => toggleSpeed(),
-  onTargetMode: () => changeSelectedTargetMode()
+  onTargetMode: () => changeSelectedTargetMode(),
+  onSellTower: () => sellSelectedTower(),
+  onMap: (mapId) => chooseMap(mapId),
+  onExportProgress: () => exportCurrentProgress(),
+  onImportProgress: () => importProgressFromPrompt(),
+  onGameOverRetry: () => restartGame()
 });
 
 bindCanvas();
@@ -64,7 +76,7 @@ if (!profile.tutorialSeen) {
 requestAnimationFrame(loop);
 
 function createStateFromProfile() {
-  const nextState = createGameState({ difficultyId: profile.difficultyId });
+  const nextState = createGameState({ difficultyId: profile.difficultyId, mapId: profile.mapId });
   nextState.unlockedTowerTypes = Array.from(
     new Set([...(nextState.unlockedTowerTypes || []), ...(profile.unlockedTowerTypes || [])])
   );
@@ -141,12 +153,14 @@ function loop(timestamp) {
 
   if (wasActive && !state.activeWave && state.wave > 0 && rewardPendingForWave !== state.wave) {
     rewardPendingForWave = state.wave;
-    profile = updateProfileFromState(profile, state);
+    profile = syncProfileFromState();
     ui.showRewards(state);
   }
 
-  if (state.lives <= 0) {
-    profile = updateProfileFromState(profile, state);
+  if (state.lives <= 0 && !gameOverShown) {
+    profile = syncProfileFromState();
+    ui.showGameOver(state, profile);
+    gameOverShown = true;
   }
 
   renderer.render(state, { selectedTowerId, effects });
@@ -167,7 +181,7 @@ function startWaveFromInput() {
 }
 
 function restartGame() {
-  profile = updateProfileFromState(profile, state);
+  profile = syncProfileFromState();
   state = createStateFromProfile();
   selectedTowerId = null;
   rewardPendingForWave = 0;
@@ -175,7 +189,9 @@ function restartGame() {
   runRecorded = false;
   isPaused = false;
   speedMultiplier = 1;
+  gameOverShown = false;
   ui.hideRewards();
+  ui.hideGameOver();
   renderUi();
 }
 
@@ -184,6 +200,15 @@ function chooseDifficulty(difficultyId) {
   if (setDifficulty(state, difficultyId)) {
     profile = { ...profile, difficultyId };
     saveProfile(profile);
+  }
+  processEvents();
+  renderUi();
+}
+
+function chooseMap(mapId) {
+  sound.resume();
+  if (setMap(state, mapId)) {
+    profile = setPreferredMap(profile, mapId);
   }
   processEvents();
   renderUi();
@@ -203,10 +228,23 @@ function selectTower(towerId) {
 function chooseReward(rewardId) {
   sound.resume();
   if (applyReward(state, rewardId)) {
-    profile = updateProfileFromState(profile, state);
+    profile = syncProfileFromState();
   }
   ui.hideRewards();
   processEvents();
+  renderUi();
+}
+
+function sellSelectedTower() {
+  if (!selectedTowerId) {
+    state.message = "Selecciona una torre para venderla.";
+    renderUi();
+    return;
+  }
+  if (sellTower(state, selectedTowerId)) {
+    selectedTowerId = null;
+    processEvents();
+  }
   renderUi();
 }
 
@@ -266,7 +304,7 @@ function placementMessage(col, row) {
   if (!tower) {
     return "Selecciona una defensa valida.";
   }
-  if (isPathCell(col, row)) {
+  if (isPathCellForState(state, col, row)) {
     return "Esa casilla es la ruta del ataque. Coloca defensas en los bordes.";
   }
   if (!canPlaceTower(state, col, row)) {
@@ -284,7 +322,7 @@ function processEvents() {
   sound.playEvents(events);
   events.forEach((event) => {
     if (event.type === "unlock" || event.type === "wave-complete") {
-      profile = updateProfileFromState(profile, state);
+      profile = syncProfileFromState();
     }
     if (event.x !== undefined && event.y !== undefined) {
       effects.push({
@@ -300,7 +338,58 @@ function processEvents() {
 }
 
 function renderUi() {
-  ui.render(state, profile, selectedTowerId, { isPaused, speedMultiplier });
+  ui.render(state, profile, selectedTowerId, {
+    isPaused,
+    speedMultiplier,
+    missions: evaluateMissions(profile, state).missionStates
+  });
+}
+
+function syncProfileFromState() {
+  let nextProfile = updateProfileFromState(profile, state);
+  const achievementResult = evaluateAchievements(nextProfile, state);
+  const missionResult = evaluateMissions(nextProfile, state);
+  nextProfile = {
+    ...nextProfile,
+    achievements: achievementResult.achievements,
+    completedMissions: missionResult.completedMissions
+  };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+async function exportCurrentProgress() {
+  const serialized = exportProfile(syncProfileFromState());
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(serialized);
+    state.message = "Progreso exportado al portapapeles.";
+  } else {
+    window.prompt("Copia tu progreso:", serialized);
+    state.message = "Progreso listo para copiar.";
+  }
+  renderUi();
+}
+
+function importProgressFromPrompt() {
+  const serialized = window.prompt("Pega aqui el JSON de progreso:");
+  if (!serialized) {
+    return;
+  }
+
+  try {
+    profile = importProfile(serialized);
+    saveProfile(profile);
+    state = createStateFromProfile();
+    selectedTowerId = null;
+    rewardPendingForWave = 0;
+    gameOverShown = false;
+    ui.hideRewards();
+    ui.hideGameOver();
+    state.message = "Progreso importado correctamente.";
+  } catch {
+    state.message = "No se pudo importar: JSON invalido.";
+  }
+  renderUi();
 }
 
 function updateEffects(deltaSeconds) {

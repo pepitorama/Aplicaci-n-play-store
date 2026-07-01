@@ -1,4 +1,4 @@
-const CACHE_NAME = "defiende-nucleo-pc-v2";
+const CACHE_NAME = "defiende-nucleo-pc-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,8 @@ const ASSETS = [
   "./src/main.js",
   "./src/audio.js",
   "./src/gameLogic.js",
+  "./src/maps.js",
+  "./src/progression.js",
   "./src/renderer.js",
   "./src/storage.js",
   "./src/ui.js",

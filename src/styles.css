@@ -225,14 +225,18 @@ button:disabled {
 
 .tower-cards,
 .reward-cards,
-.difficulty-cards {
+.difficulty-cards,
+.map-cards,
+.progress-list {
   display: grid;
   gap: 10px;
 }
 
 .tower-card,
 .reward-card,
-.difficulty-card {
+.difficulty-card,
+.map-card,
+.progress-item {
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -251,14 +255,36 @@ button:disabled {
   grid-template-columns: 1fr auto;
 }
 
-.difficulty-card.selected {
+.difficulty-card.selected,
+.map-card.selected {
   border-color: rgba(64, 217, 255, 0.72);
   background: rgba(64, 217, 255, 0.08);
 }
 
-.difficulty-card small {
+.difficulty-card small,
+.map-card small,
+.progress-item span,
+.progress-item small {
   grid-column: 1 / -1;
   color: var(--muted);
+}
+
+.map-card,
+.progress-item {
+  grid-template-columns: 1fr auto;
+}
+
+.progress-list + .progress-list {
+  margin-top: 10px;
+}
+
+.progress-item.complete {
+  border-color: rgba(77, 255, 202, 0.45);
+  background: rgba(77, 255, 202, 0.06);
+}
+
+.progress-item.complete small {
+  color: var(--accent);
 }
 
 .tower-card.locked {
@@ -301,10 +327,21 @@ button:disabled {
 }
 
 .tower-card small,
-.reward-card span {
+.reward-card span,
+#selected-info span {
   grid-column: 2 / -1;
   color: var(--muted);
   line-height: 1.35;
+}
+
+#selected-info {
+  display: grid;
+  gap: 4px;
+}
+
+#selected-info .tower-stats-title {
+  color: var(--text);
+  font-weight: 800;
 }
 
 kbd {
@@ -382,6 +419,44 @@ kbd {
 .tutorial-actions button {
   min-height: 42px;
   padding: 0 16px;
+}
+
+.utility-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.utility-actions button {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.game-over-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.game-over-summary div {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.game-over-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.game-over-summary strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.25rem;
 }
 
 @media (max-width: 1080px) {

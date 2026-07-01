@@ -8,7 +8,7 @@ export function createRenderer(canvas) {
   return {
     render(state, { selectedTowerId = null, effects = [] } = {}) {
       drawBackground(ctx, canvas);
-      drawPath(ctx);
+      drawPath(ctx, state.path || PATH);
       drawBuildHints(ctx, state);
       drawSelectedRange(ctx, state, selectedTowerId);
       drawTowers(ctx, state, selectedTowerId);
@@ -42,25 +42,25 @@ function drawBackground(ctx, canvas) {
   }
 }
 
-function drawPath(ctx) {
+function drawPath(ctx, path) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.strokeStyle = "rgba(77, 255, 202, 0.22)";
   ctx.lineWidth = GRID.cellSize * 0.72;
-  tracePath(ctx);
+  tracePath(ctx, path);
   ctx.stroke();
 
   ctx.strokeStyle = "rgba(77, 255, 202, 0.7)";
   ctx.lineWidth = 3;
   ctx.setLineDash([8, 10]);
-  tracePath(ctx);
+  tracePath(ctx, path);
   ctx.stroke();
   ctx.setLineDash([]);
 }
 
-function tracePath(ctx) {
+function tracePath(ctx, path) {
   ctx.beginPath();
-  PATH.forEach((cell, index) => {
+  path.forEach((cell, index) => {
     const point = cellToPoint(cell.col, cell.row);
     if (index === 0) {
       ctx.moveTo(point.x, point.y);

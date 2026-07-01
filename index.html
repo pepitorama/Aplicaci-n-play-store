@@ -53,6 +53,7 @@
             <button id="pause-toggle" type="button">Pausar</button>
             <button id="speed-toggle" type="button">Velocidad x1</button>
             <button id="target-toggle" type="button">Prioridad</button>
+            <button id="sell-tower" type="button">Vender</button>
             <button id="restart" type="button">Reiniciar</button>
             <button id="mute-toggle" type="button">Sonido: ON</button>
           </div>
@@ -67,19 +68,34 @@
         </section>
 
         <section>
-          <h2>1. Elige defensa</h2>
+          <h2>1. Elige mapa</h2>
+          <div id="map-cards" class="map-cards"></div>
+        </section>
+
+        <section>
+          <h2>2. Elige defensa</h2>
           <div id="tower-cards" class="tower-cards"></div>
           <p id="selected-info" class="hint"></p>
         </section>
 
         <section>
-          <h2>2. Lee la proxima amenaza</h2>
+          <h2>3. Lee la proxima amenaza</h2>
           <div id="wave-preview" class="preview-list"></div>
           <p class="hint">Pulsa espacio para iniciar. Usa 1-4 para defensas, P para pausa, F para velocidad y T para prioridad.</p>
         </section>
 
         <section class="attention-list">
-          <h2>3. Bucle de atencion</h2>
+          <h2>4. Misiones y logros</h2>
+          <div id="mission-list" class="progress-list"></div>
+          <div id="achievement-list" class="progress-list"></div>
+          <div class="utility-actions">
+            <button id="export-progress" type="button">Exportar progreso</button>
+            <button id="import-progress" type="button">Importar progreso</button>
+          </div>
+        </section>
+
+        <section class="attention-list">
+          <h2>5. Bucle de atencion</h2>
           <ol>
             <li>Plan breve antes de la oleada.</li>
             <li>Feedback visual inmediato al disparar.</li>
@@ -94,6 +110,18 @@
         <p class="eyebrow">Micro-recompensa</p>
         <h2>Elige una mejora para seguir en flow</h2>
         <div id="reward-cards" class="reward-cards"></div>
+      </div>
+    </section>
+
+    <section id="game-over-panel" class="reward-panel" hidden>
+      <div class="reward-dialog">
+        <p class="eyebrow">Fin de simulacion</p>
+        <h2>El nucleo necesita otra estrategia</h2>
+        <div id="game-over-summary" class="game-over-summary"></div>
+        <div class="tutorial-actions">
+          <button id="game-over-close" type="button">Revisar mapa</button>
+          <button id="game-over-retry" class="primary" type="button">Reintentar</button>
+        </div>
       </div>
     </section>
 

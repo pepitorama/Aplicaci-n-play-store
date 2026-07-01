@@ -1,13 +1,16 @@
 import {
   DIFFICULTY_PRESETS,
   ENEMY_TYPES,
+  MAPS,
   TARGET_MODES,
   TOWER_TYPES,
+  getTowerSellValue,
   getUpgradeCost,
   getWaveProgress,
   isTowerUnlocked,
   previewWave
 } from "./gameLogic.js";
+import { ACHIEVEMENTS, getProfileSummary } from "./progression.js";
 
 const TUTORIAL_STEPS = [
   {
@@ -28,6 +31,8 @@ export function createUi(elements, callbacks) {
   let tutorialIndex = 0;
   let towerSignature = "";
   let difficultySignature = "";
+  let mapSignature = "";
+  let progressSignature = "";
 
   elements.startWave.addEventListener("click", callbacks.onStartWave);
   elements.restart.addEventListener("click", callbacks.onRestart);
@@ -35,6 +40,13 @@ export function createUi(elements, callbacks) {
   elements.pauseToggle.addEventListener("click", callbacks.onTogglePause);
   elements.speedToggle.addEventListener("click", callbacks.onToggleSpeed);
   elements.targetToggle.addEventListener("click", callbacks.onTargetMode);
+  elements.sellTower.addEventListener("click", callbacks.onSellTower);
+  elements.exportProgress.addEventListener("click", callbacks.onExportProgress);
+  elements.importProgress.addEventListener("click", callbacks.onImportProgress);
+  elements.gameOverRetry.addEventListener("click", callbacks.onGameOverRetry);
+  elements.gameOverClose.addEventListener("click", () => {
+    elements.gameOverPanel.hidden = true;
+  });
   elements.tutorialNext.addEventListener("click", () => {
     tutorialIndex += 1;
     if (tutorialIndex >= TUTORIAL_STEPS.length) {
@@ -65,10 +77,20 @@ export function createUi(elements, callbacks) {
         renderDifficultyCards(elements, state, callbacks.onDifficulty);
         difficultySignature = nextDifficultySignature;
       }
+      const nextMapSignature = `${state.mapId}:${state.wave}:${state.towers.length}:${state.activeWave}`;
+      if (nextMapSignature !== mapSignature) {
+        renderMapCards(elements, state, callbacks.onMap);
+        mapSignature = nextMapSignature;
+      }
       const nextTowerSignature = `${state.selectedTowerType}:${state.money}:${state.unlockedTowerTypes.join(",")}`;
       if (nextTowerSignature !== towerSignature) {
         renderTowerCards(elements, state, callbacks.onTowerSelect);
         towerSignature = nextTowerSignature;
+      }
+      const nextProgressSignature = `${profile.achievements?.join(",")}:${profile.completedMissions?.join(",")}:${state.totalKills}:${state.maxWaveReached}:${state.perfectWaves}`;
+      if (nextProgressSignature !== progressSignature) {
+        renderProgress(elements, state, profile, session.missions || []);
+        progressSignature = nextProgressSignature;
       }
       renderProfile(elements, profile);
     },
@@ -78,6 +100,13 @@ export function createUi(elements, callbacks) {
     },
     hideRewards() {
       elements.rewardPanel.hidden = true;
+    },
+    showGameOver(state, profile) {
+      renderGameOver(elements, state, profile);
+      elements.gameOverPanel.hidden = false;
+    },
+    hideGameOver() {
+      elements.gameOverPanel.hidden = true;
     }
   };
 }
@@ -94,16 +123,26 @@ export function collectUiElements() {
     preview: document.querySelector("#wave-preview"),
     towerCards: document.querySelector("#tower-cards"),
     difficultyCards: document.querySelector("#difficulty-cards"),
+    mapCards: document.querySelector("#map-cards"),
     startWave: document.querySelector("#start-wave"),
     restart: document.querySelector("#restart"),
     pauseToggle: document.querySelector("#pause-toggle"),
     speedToggle: document.querySelector("#speed-toggle"),
     targetToggle: document.querySelector("#target-toggle"),
+    sellTower: document.querySelector("#sell-tower"),
     muteToggle: document.querySelector("#mute-toggle"),
     rewardPanel: document.querySelector("#reward-panel"),
     rewardCards: document.querySelector("#reward-cards"),
     selectedInfo: document.querySelector("#selected-info"),
     profileInfo: document.querySelector("#profile-info"),
+    missionList: document.querySelector("#mission-list"),
+    achievementList: document.querySelector("#achievement-list"),
+    exportProgress: document.querySelector("#export-progress"),
+    importProgress: document.querySelector("#import-progress"),
+    gameOverPanel: document.querySelector("#game-over-panel"),
+    gameOverSummary: document.querySelector("#game-over-summary"),
+    gameOverRetry: document.querySelector("#game-over-retry"),
+    gameOverClose: document.querySelector("#game-over-close"),
     waveProgressBar: document.querySelector("#wave-progress-bar"),
     waveProgressLabel: document.querySelector("#wave-progress-label"),
     tutorialPanel: document.querySelector("#tutorial-panel"),
@@ -129,6 +168,7 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.pauseToggle.disabled = state.lives <= 0;
   elements.speedToggle.textContent = `Velocidad x${session.speedMultiplier || 1}`;
   elements.targetToggle.disabled = !selectedTowerId;
+  elements.sellTower.disabled = !selectedTowerId;
 
   const progress = getWaveProgress(state);
   elements.waveProgressBar.style.width = `${Math.round(progress * 100)}%`;
@@ -139,10 +179,12 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   const selected = state.towers.find((tower) => tower.id === selectedTowerId);
   if (selected) {
     elements.targetToggle.textContent = `Prioridad: ${TARGET_MODES[selected.targetMode || "first"].name}`;
-    elements.selectedInfo.textContent = `${TOWER_TYPES[selected.typeId].name} nivel ${selected.level}. Upgrade: ${getUpgradeCost(selected)} energia. Prioridad: ${TARGET_MODES[selected.targetMode || "first"].description}`;
+    elements.sellTower.textContent = `Vender +${getTowerSellValue(selected)}`;
+    elements.selectedInfo.innerHTML = towerStatsHtml(selected);
   } else {
     const tower = TOWER_TYPES[state.selectedTowerType];
     elements.targetToggle.textContent = "Prioridad";
+    elements.sellTower.textContent = "Vender";
     elements.selectedInfo.textContent = `Colocando ${tower.name}. Click en casilla libre; click en una torre para mejorar.`;
   }
 }
@@ -161,6 +203,23 @@ function renderDifficultyCards(elements, state, onDifficulty) {
     `;
     button.addEventListener("click", () => onDifficulty(difficulty.id));
     elements.difficultyCards.append(button);
+  });
+}
+
+function renderMapCards(elements, state, onMap) {
+  elements.mapCards.innerHTML = "";
+  Object.values(MAPS).forEach((map) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `map-card ${state.mapId === map.id ? "selected" : ""}`;
+    button.disabled = state.wave > 0 || state.towers.length > 0 || state.activeWave;
+    button.innerHTML = `
+      <strong>${map.name}</strong>
+      <span>${map.difficulty}</span>
+      <small>${map.description}</small>
+    `;
+    button.addEventListener("click", () => onMap(map.id));
+    elements.mapCards.append(button);
   });
 }
 
@@ -185,7 +244,35 @@ function renderTowerCards(elements, state, onTowerSelect) {
 }
 
 function renderProfile(elements, profile) {
-  elements.profileInfo.textContent = `Partidas: ${profile.totalRuns || 0}. Record: ${profile.bestScore || 0}. Maxima oleada: ${profile.maxWave || 0}.`;
+  const summary = getProfileSummary(profile);
+  elements.profileInfo.textContent = `Partidas: ${profile.totalRuns || 0}. Record: ${profile.bestScore || 0}. Maxima oleada: ${profile.maxWave || 0}. Logros: ${summary.achievements}. Misiones: ${summary.missions}.`;
+}
+
+function renderProgress(elements, state, profile, missions) {
+  elements.missionList.innerHTML = missions
+    .map(
+      (mission) => `
+        <article class="progress-item ${mission.complete ? "complete" : ""}">
+          <strong>${mission.title}</strong>
+          <span>${mission.description}</span>
+          <small>${mission.progress}/${mission.target}</small>
+        </article>
+      `
+    )
+    .join("");
+
+  elements.achievementList.innerHTML = Object.values(ACHIEVEMENTS)
+    .map((achievement) => {
+      const complete = (profile.achievements || []).includes(achievement.id) || achievement.isComplete(state, profile);
+      return `
+        <article class="progress-item ${complete ? "complete" : ""}">
+          <strong>${achievement.title}</strong>
+          <span>${achievement.description}</span>
+          <small>${complete ? "Completado" : "Pendiente"}</small>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderRewards(elements, state, onReward) {
@@ -225,6 +312,27 @@ function renderTutorial(elements, index) {
   elements.tutorialTitle.textContent = step.title;
   elements.tutorialBody.textContent = step.body;
   elements.tutorialNext.textContent = index === TUTORIAL_STEPS.length - 1 ? "Jugar" : "Siguiente";
+}
+
+function renderGameOver(elements, state, profile) {
+  elements.gameOverSummary.innerHTML = `
+    <div><span>Puntuacion final</span><strong>${state.score}</strong></div>
+    <div><span>Oleada alcanzada</span><strong>${state.maxWaveReached}</strong></div>
+    <div><span>Enemigos derrotados</span><strong>${state.totalKills}</strong></div>
+    <div><span>Record guardado</span><strong>${Math.max(profile.bestScore || 0, state.score || 0)}</strong></div>
+  `;
+}
+
+function towerStatsHtml(tower) {
+  const type = TOWER_TYPES[tower.typeId];
+  const range = type.range + tower.level * 8;
+  const damage = Math.round(type.damage * (1 + (tower.level - 1) * 0.42));
+  return `
+    <span class="tower-stats-title">${type.name} nivel ${tower.level}</span>
+    <span>Dano: ${damage} | Rango: ${range} | Cadencia: ${type.cooldown.toFixed(2)}s</span>
+    <span>Upgrade: ${getUpgradeCost(tower)} energia | Venta: ${getTowerSellValue(tower)} energia</span>
+    <span>Prioridad: ${TARGET_MODES[tower.targetMode || "first"].description}</span>
+  `;
 }
 
 function hideTutorial(elements) {

@@ -9,7 +9,9 @@ const SOUND_MAP = {
   "wave-start": [330, 0.08, "triangle", 0.04],
   "wave-complete": [760, 0.16, "sine", 0.05],
   difficulty: [500, 0.06, "sine", 0.035],
-  "target-mode": [610, 0.06, "triangle", 0.035]
+  "target-mode": [610, 0.06, "triangle", 0.035],
+  map: [460, 0.07, "sine", 0.035],
+  sell: [260, 0.08, "triangle", 0.035]
 };
 
 export class SoundEngine {
@@ -72,10 +74,12 @@ export class SoundEngine {
       "leak",
       "defeat",
       "target-mode",
+      "sell",
       "upgrade",
       "place",
       "wave-start",
-      "difficulty"
+      "difficulty",
+      "map"
     ];
     const played = new Set();
     for (const eventType of priority) {

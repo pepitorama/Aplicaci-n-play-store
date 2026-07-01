@@ -1,3 +1,5 @@
+import { DEFAULT_MAP_ID, MAPS, getMapDefinition } from "./maps.js";
+
 export const GRID = {
   cols: 14,
   rows: 9,
@@ -63,20 +65,9 @@ export const TARGET_MODES = {
   }
 };
 
-export const PATH = [
-  { col: 0, row: 4 },
-  { col: 1, row: 4 },
-  { col: 2, row: 4 },
-  { col: 3, row: 4 },
-  { col: 3, row: 2 },
-  { col: 5, row: 2 },
-  { col: 5, row: 6 },
-  { col: 8, row: 6 },
-  { col: 8, row: 3 },
-  { col: 11, row: 3 },
-  { col: 11, row: 5 },
-  { col: 13, row: 5 }
-];
+export { DEFAULT_MAP_ID, MAPS, getMapDefinition };
+
+export const PATH = getMapDefinition(DEFAULT_MAP_ID).path;
 
 export const TOWER_TYPES = {
   packet: {
@@ -171,7 +162,7 @@ export const ENEMY_TYPES = {
   }
 };
 
-const pathCells = new Set(PATH.map((point) => cellKey(point.col, point.row)));
+const pathCells = getPathCellKeys(PATH);
 
 export function getDifficultyPreset(difficultyId = "normal") {
   return DIFFICULTY_PRESETS[difficultyId] || DIFFICULTY_PRESETS.normal;
@@ -214,6 +205,19 @@ export function setDifficulty(state, difficultyId) {
   state.lives = preset.startingLives;
   state.message = `Dificultad ${preset.name} seleccionada. Coloca defensas y empieza.`;
   addEvent(state, { type: "difficulty", difficultyId: preset.id });
+  return true;
+}
+
+export function setMap(state, mapId) {
+  if (state.activeWave || state.wave > 0 || state.towers.length > 0) {
+    return false;
+  }
+
+  const map = getMapDefinition(mapId);
+  state.mapId = map.id;
+  state.path = map.path;
+  state.message = `Mapa ${map.name} seleccionado. Ajusta la defensa a su ruta.`;
+  addEvent(state, { type: "map", mapId: map.id });
   return true;
 }
 
@@ -279,6 +283,7 @@ export function pointOnPath(progress, path = PATH) {
 
 export function createGameState(options = {}) {
   const difficulty = getDifficultyPreset(options.difficultyId);
+  const map = getMapDefinition(options.mapId);
   return {
     money: difficulty.startingMoney,
     lives: difficulty.startingLives,
@@ -286,6 +291,8 @@ export function createGameState(options = {}) {
     wave: 0,
     focusStreak: 0,
     difficultyId: difficulty.id,
+    mapId: map.id,
+    path: map.path,
     selectedTowerType: "packet",
     nextTowerId: 1,
     nextEnemyId: 1,
@@ -300,6 +307,9 @@ export function createGameState(options = {}) {
     activeWave: false,
     lastWaveLeaks: 0,
     totalKills: 0,
+    killsByType: {},
+    towersPlacedByType: {},
+    perfectWaves: 0,
     maxWaveReached: 0,
     unlockedTowerTypes: getUnlockedTowerTypes(0),
     eventQueue: [],
@@ -314,6 +324,11 @@ export function createGameState(options = {}) {
 
 export function isPathCell(col, row) {
   return pathCells.has(cellKey(col, row));
+}
+
+export function isPathCellForState(state, col, row) {
+  const path = state.path || PATH;
+  return getPathCellKeys(path).has(cellKey(col, row));
 }
 
 export function isInsideGrid(col, row) {
@@ -344,7 +359,7 @@ export function canPlaceTower(state, col, row, typeId = state.selectedTowerType)
     type &&
       isTowerUnlocked(state, typeId) &&
       isInsideGrid(col, row) &&
-      !isPathCell(col, row) &&
+      !isPathCellForState(state, col, row) &&
       !towerAt(state, col, row) &&
       state.money >= type.cost
   );
@@ -367,9 +382,11 @@ export function placeTower(state, col, row, typeId = state.selectedTowerType) {
     lastShotTime: 0,
     targetId: null,
     targetMode: "first",
+    invested: type.cost,
     ...cellToPoint(col, row)
   });
   state.nextTowerId += 1;
+  state.towersPlacedByType[typeId] = (state.towersPlacedByType[typeId] || 0) + 1;
   state.message = `${type.name} instalado. Observa la ruta y ajusta tu defensa.`;
   addEvent(state, { type: "place", towerType: typeId, x: cellToPoint(col, row).x, y: cellToPoint(col, row).y });
   return true;
@@ -389,6 +406,7 @@ export function upgradeTower(state, towerId) {
 
   state.money -= cost;
   tower.level += 1;
+  tower.invested = (tower.invested || type.cost) + cost;
   state.message = `${type.name} subio a nivel ${tower.level}.`;
   addEvent(state, { type: "upgrade", towerType: tower.typeId, x: tower.x, y: tower.y });
   return true;
@@ -397,6 +415,25 @@ export function upgradeTower(state, towerId) {
 export function getUpgradeCost(tower) {
   const type = TOWER_TYPES[tower.typeId];
   return Math.round(type.upgradeCost * tower.level * 1.25);
+}
+
+export function getTowerSellValue(tower) {
+  const type = TOWER_TYPES[tower.typeId];
+  return Math.max(1, Math.round((tower.invested || type.cost) * 0.6));
+}
+
+export function sellTower(state, towerId) {
+  const towerIndex = state.towers.findIndex((tower) => tower.id === towerId);
+  if (towerIndex === -1) {
+    return false;
+  }
+
+  const [tower] = state.towers.splice(towerIndex, 1);
+  const refund = getTowerSellValue(tower);
+  state.money += refund;
+  state.message = `${TOWER_TYPES[tower.typeId].name} vendida: +${refund} energia.`;
+  addEvent(state, { type: "sell", towerType: tower.typeId, x: tower.x, y: tower.y, refund });
+  return true;
 }
 
 export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal") {
@@ -523,7 +560,7 @@ function spawnEnemies(state, deltaSeconds) {
       slowTimer: 0,
       slowFactor: 1,
       leaked: false,
-      ...pointOnPath(0)
+      ...pointOnPath(0, state.path || PATH)
     };
     state.enemies.push(enemy);
     state.spawnedThisWave += 1;
@@ -538,11 +575,11 @@ function updateEnemies(state, deltaSeconds) {
     const speedMultiplier = enemy.slowTimer > 0 ? enemy.slowFactor : 1;
     enemy.slowTimer = Math.max(0, enemy.slowTimer - deltaSeconds);
     enemy.progress += enemy.speed * speedMultiplier * deltaSeconds;
-    const position = pointOnPath(enemy.progress);
+    const position = pointOnPath(enemy.progress, state.path || PATH);
     enemy.x = position.x;
     enemy.y = position.y;
 
-    if (enemy.progress >= TOTAL_PATH_LENGTH && !enemy.leaked) {
+    if (enemy.progress >= pathLength(state.path || PATH) && !enemy.leaked) {
       enemy.leaked = true;
       state.lives -= 1;
       state.lastWaveLeaks += 1;
@@ -600,6 +637,7 @@ function clearDefeatedEnemies(state) {
       state.money += enemy.reward;
       state.score += Math.round(enemy.reward * 10 * difficulty.score);
       state.totalKills += 1;
+      state.killsByType[enemy.typeId] = (state.killsByType[enemy.typeId] || 0) + 1;
       state.defeatedThisWave += 1;
       state.waveResolved += 1;
       addEvent(state, {
@@ -625,6 +663,7 @@ function finishWaveIfNeeded(state) {
   const unlocked = unlockAvailableTowers(state);
   if (state.lastWaveLeaks === 0) {
     state.focusStreak += 1;
+    state.perfectWaves += 1;
     const bonus = 20 + state.focusStreak * 6;
     state.money += bonus;
     state.score += Math.round(bonus * 12 * getDifficultyPreset(state.difficultyId).score);
@@ -664,6 +703,25 @@ function distance(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.hypot(dx, dy);
+}
+
+function getPathCellKeys(path) {
+  const keys = new Set();
+  for (let index = 1; index < path.length; index += 1) {
+    const from = path[index - 1];
+    const to = path[index];
+    const stepCol = Math.sign(to.col - from.col);
+    const stepRow = Math.sign(to.row - from.row);
+    let col = from.col;
+    let row = from.row;
+    keys.add(cellKey(col, row));
+    while (col !== to.col || row !== to.row) {
+      col += stepCol;
+      row += stepRow;
+      keys.add(cellKey(col, row));
+    }
+  }
+  return keys;
 }
 
 function addEvent(state, event) {
