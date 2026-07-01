@@ -35,6 +35,13 @@
           <div><span>Integridad</span><strong id="lives">20</strong></div>
           <div><span>Oleada</span><strong id="wave">0</strong></div>
           <div><span>Puntos</span><strong id="score">0</strong></div>
+          <div><span>Record</span><strong id="best-score">0</strong></div>
+          <div><span>Max. oleada</span><strong id="max-wave">0</strong></div>
+        </div>
+
+        <div class="wave-progress" aria-label="Progreso de oleada">
+          <span id="wave-progress-label">Oleada en espera</span>
+          <div><span id="wave-progress-bar"></span></div>
         </div>
 
         <canvas id="game-canvas" aria-label="Mapa del juego" role="img"></canvas>
@@ -44,11 +51,18 @@
           <div class="actions">
             <button id="start-wave" class="primary" type="button">Iniciar oleada</button>
             <button id="restart" type="button">Reiniciar</button>
+            <button id="mute-toggle" type="button">Sonido: ON</button>
           </div>
         </div>
       </section>
 
       <aside class="control-panel" aria-label="Controles">
+        <section>
+          <h2>0. Elige dificultad</h2>
+          <div id="difficulty-cards" class="difficulty-cards"></div>
+          <p id="profile-info" class="hint"></p>
+        </section>
+
         <section>
           <h2>1. Elige defensa</h2>
           <div id="tower-cards" class="tower-cards"></div>
@@ -77,6 +91,18 @@
         <p class="eyebrow">Micro-recompensa</p>
         <h2>Elige una mejora para seguir en flow</h2>
         <div id="reward-cards" class="reward-cards"></div>
+      </div>
+    </section>
+
+    <section id="tutorial-panel" class="reward-panel" hidden>
+      <div class="reward-dialog tutorial-dialog">
+        <p class="eyebrow">Tutorial rapido</p>
+        <h2 id="tutorial-title">Protege el nucleo</h2>
+        <p id="tutorial-body"></p>
+        <div class="tutorial-actions">
+          <button id="tutorial-skip" type="button">Saltar</button>
+          <button id="tutorial-next" class="primary" type="button">Siguiente</button>
+        </div>
       </div>
     </section>
 

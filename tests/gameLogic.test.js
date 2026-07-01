@@ -2,12 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  DIFFICULTY_PRESETS,
   ENEMY_TYPES,
   TOWER_TYPES,
+  applyReward,
   canPlaceTower,
   createGameState,
+  getWaveProgress,
+  isTowerUnlocked,
   placeTower,
   previewWave,
+  setDifficulty,
   startNextWave,
   updateGame,
   upgradeTower
@@ -73,4 +78,39 @@ test("enemies that reach the core reduce lives", () => {
 
   assert.ok(state.lives < initialLives);
   assert.ok(Object.keys(ENEMY_TYPES).length >= 3);
+});
+
+test("difficulty presets adjust starting resources before a run starts", () => {
+  const state = createGameState();
+
+  assert.equal(setDifficulty(state, "hard"), true);
+  assert.equal(state.difficultyId, DIFFICULTY_PRESETS.hard.id);
+  assert.equal(state.money, DIFFICULTY_PRESETS.hard.startingMoney);
+  assert.equal(state.lives, DIFFICULTY_PRESETS.hard.startingLives);
+
+  startNextWave(state);
+  assert.equal(setDifficulty(state, "easy"), false, "difficulty is locked once a run starts");
+});
+
+test("wave progress increases as enemies are resolved", () => {
+  const state = createGameState();
+  startNextWave(state);
+  assert.equal(getWaveProgress(state), 0);
+
+  for (let step = 0; step < 1200 && getWaveProgress(state) === 0; step += 1) {
+    updateGame(state, 1 / 30);
+  }
+
+  assert.ok(getWaveProgress(state) > 0);
+});
+
+test("locked towers can be unlocked with blueprint rewards", () => {
+  const state = createGameState();
+
+  assert.equal(isTowerUnlocked(state, "tesla"), false);
+  assert.equal(placeTower(state, 1, 1, "tesla"), false);
+  assert.equal(applyReward(state, "blueprint"), true);
+  assert.equal(isTowerUnlocked(state, "tesla"), true);
+  state.money = 500;
+  assert.equal(placeTower(state, 1, 1, "tesla"), true);
 });

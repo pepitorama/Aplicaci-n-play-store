@@ -118,7 +118,7 @@ button:disabled {
 
 .hud-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -140,6 +140,35 @@ button:disabled {
   display: block;
   margin-top: 4px;
   font-size: 1.35rem;
+}
+
+.wave-progress {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.wave-progress div {
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.wave-progress span span,
+#wave-progress-bar {
+  display: block;
+}
+
+#wave-progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 180ms ease;
 }
 
 #game-canvas {
@@ -194,13 +223,15 @@ button:disabled {
 }
 
 .tower-cards,
-.reward-cards {
+.reward-cards,
+.difficulty-cards {
   display: grid;
   gap: 10px;
 }
 
 .tower-card,
-.reward-card {
+.reward-card,
+.difficulty-card {
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -213,6 +244,36 @@ button:disabled {
 .tower-card.selected {
   border-color: rgba(77, 255, 202, 0.75);
   background: rgba(77, 255, 202, 0.08);
+}
+
+.difficulty-card {
+  grid-template-columns: 1fr auto;
+}
+
+.difficulty-card.selected {
+  border-color: rgba(64, 217, 255, 0.72);
+  background: rgba(64, 217, 255, 0.08);
+}
+
+.difficulty-card small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.tower-card.locked {
+  opacity: 0.58;
+}
+
+.tower-card.locked::after {
+  content: "Bloqueada";
+  position: absolute;
+  inset: 10px 10px auto auto;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #07101e;
+  background: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 900;
 }
 
 .tower-chip {
@@ -304,6 +365,22 @@ kbd {
 
 .reward-card span {
   grid-column: auto;
+}
+
+.tutorial-dialog p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.tutorial-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tutorial-actions button {
+  min-height: 42px;
+  padding: 0 16px;
 }
 
 @media (max-width: 1080px) {

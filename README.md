@@ -45,19 +45,42 @@ Fuentes consultadas:
 ## Funciones implementadas
 
 - Tablero canvas 14x9 con ruta visible.
+- Tutorial inicial de tres pasos para reducir friccion en la primera partida.
+- Dificultad seleccionable: facil, normal y dificil.
 - Tres defensas:
   - **Analizador:** rapido y equilibrado.
   - **Firewall:** dano alto contra enemigos resistentes.
   - **Sandbox:** ralentiza amenazas.
+- Defensa desbloqueable:
+  - **IA Centinela:** se desbloquea con progreso o con recompensa de plano.
 - Tres enemigos:
   - **Gusano:** comun.
   - **Spyware:** rapido.
   - **Botnet:** resistente.
+- Enemigo avanzado:
+  - **Ransomware:** amenaza lenta y resistente de oleadas superiores.
 - Oleadas con vista previa.
+- Barra de progreso de oleada.
 - Economia por energia, upgrades, puntuacion e integridad del nucleo.
 - Micro-recompensas tras cada oleada.
 - Ajuste de dificultad si la oleada anterior tuvo muchas fugas.
+- Guardado local de record, maxima oleada, partidas jugadas, dificultad y desbloqueos.
+- Sonidos sinteticos ligeros con opcion de silencio.
+- Feedback visual de rango, impactos, derrotas y alertas del nucleo.
 - PWA con manifest, icono y service worker offline.
+
+## Estructura
+
+```text
+src/
+  audio.js       Sonidos sinteticos y mute.
+  gameLogic.js   Motor: oleadas, torres, enemigos, economia y dificultad.
+  main.js        Coordinador entre UI, motor, render, audio y persistencia.
+  renderer.js    Dibujo del canvas y efectos visuales.
+  storage.js     Perfil local con localStorage.
+  ui.js          HUD, tutorial, recompensas, dificultad y tarjetas.
+  styles.css     Estilos responsive de la PWA.
+```
 
 ## Ejecutar
 
@@ -81,12 +104,12 @@ npm test
 
 - Click en casilla libre: colocar defensa seleccionada.
 - Click en torre existente: mejorar si hay energia.
-- Teclas `1`, `2`, `3`: cambiar defensa.
+- Teclas `1`, `2`, `3`, `4`: cambiar defensa si esta desbloqueada.
 - `Espacio`: iniciar oleada.
+- Boton de sonido: activar/desactivar efectos.
 
 ## Siguientes pasos recomendados
 
-- Balancear costos, dano y velocidad con sesiones de prueba.
-- Anadir tutorial interactivo de 30 segundos.
-- Guardar progreso local y desbloqueos.
+- Balancear costos, dano y velocidad con sesiones de prueba reales.
+- Anadir mas mapas sin tocar el motor principal.
 - Convertir en Android con Trusted Web Activity, Capacitor o un proyecto nativo si se decide llevarlo a Play Store.

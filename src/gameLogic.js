@@ -4,6 +4,42 @@ export const GRID = {
   cellSize: 52
 };
 
+export const DIFFICULTY_PRESETS = {
+  easy: {
+    id: "easy",
+    name: "Facil",
+    startingMoney: 160,
+    startingLives: 24,
+    enemyHealth: 0.86,
+    enemySpeed: 0.92,
+    waveSize: 0.86,
+    reward: 1.14,
+    score: 0.9
+  },
+  normal: {
+    id: "normal",
+    name: "Normal",
+    startingMoney: 130,
+    startingLives: 20,
+    enemyHealth: 1,
+    enemySpeed: 1,
+    waveSize: 1,
+    reward: 1,
+    score: 1
+  },
+  hard: {
+    id: "hard",
+    name: "Dificil",
+    startingMoney: 110,
+    startingLives: 16,
+    enemyHealth: 1.18,
+    enemySpeed: 1.08,
+    waveSize: 1.14,
+    reward: 1.08,
+    score: 1.2
+  }
+};
+
 export const PATH = [
   { col: 0, row: 4 },
   { col: 1, row: 4 },
@@ -30,6 +66,7 @@ export const TOWER_TYPES = {
     range: 118,
     cooldown: 0.62,
     color: "#40d9ff",
+    unlockWave: 0,
     description: "Dano rapido y equilibrado contra malware comun."
   },
   firewall: {
@@ -42,6 +79,7 @@ export const TOWER_TYPES = {
     range: 96,
     cooldown: 1.05,
     color: "#ffb84a",
+    unlockWave: 0,
     description: "Golpes pesados contra bots blindados."
   },
   freezer: {
@@ -56,7 +94,22 @@ export const TOWER_TYPES = {
     slow: 0.46,
     slowDuration: 1.35,
     color: "#9f7cff",
+    unlockWave: 0,
     description: "Reduce velocidad y abre ventanas de reaccion."
+  },
+  tesla: {
+    id: "tesla",
+    name: "IA Centinela",
+    shortName: "IA",
+    cost: 95,
+    upgradeCost: 110,
+    damage: 12,
+    range: 138,
+    cooldown: 0.42,
+    chain: 2,
+    color: "#4dffca",
+    unlockWave: 4,
+    description: "Se desbloquea en oleada 4 y prioriza amenazas avanzadas."
   }
 };
 
@@ -84,10 +137,75 @@ export const ENEMY_TYPES = {
     speed: 66,
     reward: 12,
     color: "#e0ff5f"
+  },
+  ransomware: {
+    id: "ransomware",
+    name: "Ransomware",
+    hp: 118,
+    speed: 28,
+    reward: 22,
+    color: "#ff4fd8"
   }
 };
 
 const pathCells = new Set(PATH.map((point) => cellKey(point.col, point.row)));
+
+export function getDifficultyPreset(difficultyId = "normal") {
+  return DIFFICULTY_PRESETS[difficultyId] || DIFFICULTY_PRESETS.normal;
+}
+
+export function getUnlockedTowerTypes(wave = 0) {
+  return Object.values(TOWER_TYPES)
+    .filter((tower) => tower.unlockWave <= wave)
+    .map((tower) => tower.id);
+}
+
+export function isTowerUnlocked(state, typeId) {
+  return !state.unlockedTowerTypes || state.unlockedTowerTypes.includes(typeId);
+}
+
+export function unlockAvailableTowers(state) {
+  const unlockedBefore = new Set(state.unlockedTowerTypes || []);
+  state.unlockedTowerTypes = Array.from(new Set([...(state.unlockedTowerTypes || []), ...getUnlockedTowerTypes(state.wave)]));
+  const newlyUnlocked = state.unlockedTowerTypes.filter((typeId) => !unlockedBefore.has(typeId));
+
+  newlyUnlocked.forEach((typeId) => {
+    addEvent(state, {
+      type: "unlock",
+      towerType: typeId,
+      message: `${TOWER_TYPES[typeId].name} desbloqueado.`
+    });
+  });
+
+  return newlyUnlocked;
+}
+
+export function setDifficulty(state, difficultyId) {
+  if (state.activeWave || state.wave > 0 || state.towers.length > 0) {
+    return false;
+  }
+
+  const preset = getDifficultyPreset(difficultyId);
+  state.difficultyId = preset.id;
+  state.money = preset.startingMoney;
+  state.lives = preset.startingLives;
+  state.message = `Dificultad ${preset.name} seleccionada. Coloca defensas y empieza.`;
+  addEvent(state, { type: "difficulty", difficultyId: preset.id });
+  return true;
+}
+
+export function getWaveProgress(state) {
+  if (!state.waveTotal) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, state.waveResolved / state.waveTotal));
+}
+
+export function drainEvents(state) {
+  const events = state.eventQueue || [];
+  state.eventQueue = [];
+  return events;
+}
 
 export function cellKey(col, row) {
   return `${col}:${row}`;
@@ -136,22 +254,32 @@ export function pointOnPath(progress, path = PATH) {
   return cellToPoint(last.col, last.row);
 }
 
-export function createGameState() {
+export function createGameState(options = {}) {
+  const difficulty = getDifficultyPreset(options.difficultyId);
   return {
-    money: 130,
-    lives: 20,
+    money: difficulty.startingMoney,
+    lives: difficulty.startingLives,
     score: 0,
     wave: 0,
     focusStreak: 0,
+    difficultyId: difficulty.id,
     selectedTowerType: "packet",
     nextTowerId: 1,
     nextEnemyId: 1,
     towers: [],
     enemies: [],
     waveQueue: [],
+    waveTotal: 0,
+    waveResolved: 0,
+    spawnedThisWave: 0,
+    defeatedThisWave: 0,
     spawnTimer: 0,
     activeWave: false,
     lastWaveLeaks: 0,
+    totalKills: 0,
+    maxWaveReached: 0,
+    unlockedTowerTypes: getUnlockedTowerTypes(0),
+    eventQueue: [],
     message: "Protege el nucleo: coloca defensas antes de iniciar la oleada.",
     researchNotes: [
       "Ruta legible y vista previa reducen carga cognitiva.",
@@ -177,6 +305,7 @@ export function canPlaceTower(state, col, row, typeId = state.selectedTowerType)
   const type = TOWER_TYPES[typeId];
   return Boolean(
     type &&
+      isTowerUnlocked(state, typeId) &&
       isInsideGrid(col, row) &&
       !isPathCell(col, row) &&
       !towerAt(state, col, row) &&
@@ -204,6 +333,7 @@ export function placeTower(state, col, row, typeId = state.selectedTowerType) {
   });
   state.nextTowerId += 1;
   state.message = `${type.name} instalado. Observa la ruta y ajusta tu defensa.`;
+  addEvent(state, { type: "place", towerType: typeId, x: cellToPoint(col, row).x, y: cellToPoint(col, row).y });
   return true;
 }
 
@@ -222,6 +352,7 @@ export function upgradeTower(state, towerId) {
   state.money -= cost;
   tower.level += 1;
   state.message = `${type.name} subio a nivel ${tower.level}.`;
+  addEvent(state, { type: "upgrade", towerType: tower.typeId, x: tower.x, y: tower.y });
   return true;
 }
 
@@ -230,16 +361,18 @@ export function getUpgradeCost(tower) {
   return Math.round(type.upgradeCost * tower.level * 1.25);
 }
 
-export function buildWave(waveNumber, leaksLastWave = 0) {
+export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal") {
+  const difficulty = getDifficultyPreset(difficultyId);
   const difficultyRelief = leaksLastWave >= 3 ? -1 : 0;
   const adjustedWave = Math.max(1, waveNumber + difficultyRelief);
   const queue = [];
-  const baseCount = 5 + Math.floor(adjustedWave * 1.8);
+  const baseCount = Math.max(3, Math.round((5 + adjustedWave * 1.8) * difficulty.waveSize));
 
   for (let index = 0; index < baseCount; index += 1) {
     const isFast = adjustedWave >= 2 && index % 5 === 3;
     const isTank = adjustedWave >= 3 && index % 6 === 5;
-    const typeId = isTank ? "botnet" : isFast ? "spyware" : "worm";
+    const isBoss = adjustedWave >= 5 && index === baseCount - 1;
+    const typeId = isBoss ? "ransomware" : isTank ? "botnet" : isFast ? "spyware" : "worm";
     queue.push({
       typeId,
       delay: index === 0 ? 0.2 : 0.58 + Math.max(0, 0.04 - adjustedWave * 0.004)
@@ -249,8 +382,8 @@ export function buildWave(waveNumber, leaksLastWave = 0) {
   return queue;
 }
 
-export function previewWave(waveNumber, leaksLastWave = 0) {
-  return buildWave(waveNumber, leaksLastWave).reduce((summary, item) => {
+export function previewWave(waveNumber, leaksLastWave = 0, difficultyId = "normal") {
+  return buildWave(waveNumber, leaksLastWave, difficultyId).reduce((summary, item) => {
     summary[item.typeId] = (summary[item.typeId] || 0) + 1;
     return summary;
   }, {});
@@ -262,11 +395,17 @@ export function startNextWave(state) {
   }
 
   state.wave += 1;
-  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks);
+  state.maxWaveReached = Math.max(state.maxWaveReached, state.wave);
+  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks, state.difficultyId);
+  state.waveTotal = state.waveQueue.length;
+  state.waveResolved = 0;
+  state.spawnedThisWave = 0;
+  state.defeatedThisWave = 0;
   state.spawnTimer = 0;
   state.activeWave = true;
   state.lastWaveLeaks = 0;
   state.message = `Oleada ${state.wave}: mira la vista previa y reacciona con upgrades.`;
+  addEvent(state, { type: "wave-start", wave: state.wave });
   return true;
 }
 
@@ -287,12 +426,14 @@ export function applyReward(state, rewardId) {
   if (rewardId === "cache") {
     state.money += 45;
     state.message = "Cache de emergencia: +45 energia.";
+    addEvent(state, { type: "reward", rewardId });
     return true;
   }
 
   if (rewardId === "patch") {
     state.lives = Math.min(25, state.lives + 3);
     state.message = "Parche critico aplicado: +3 integridad.";
+    addEvent(state, { type: "reward", rewardId });
     return true;
   }
 
@@ -301,6 +442,21 @@ export function applyReward(state, rewardId) {
       tower.level += 1;
     });
     state.message = "Overclock global: todas las defensas suben un nivel.";
+    addEvent(state, { type: "reward", rewardId });
+    return true;
+  }
+
+  if (rewardId === "blueprint") {
+    const lockedTower = Object.values(TOWER_TYPES).find((tower) => !isTowerUnlocked(state, tower.id));
+    if (!lockedTower) {
+      state.money += 35;
+      state.message = "Todos los planos estan activos: +35 energia.";
+    } else {
+      state.unlockedTowerTypes.push(lockedTower.id);
+      state.message = `${lockedTower.name} desbloqueado antes de tiempo.`;
+      addEvent(state, { type: "unlock", towerType: lockedTower.id, message: state.message });
+    }
+    addEvent(state, { type: "reward", rewardId });
     return true;
   }
 
@@ -316,21 +472,25 @@ function spawnEnemies(state, deltaSeconds) {
   while (state.waveQueue.length > 0 && state.spawnTimer <= 0) {
     const next = state.waveQueue.shift();
     const type = ENEMY_TYPES[next.typeId];
-    const healthScale = 1 + (state.wave - 1) * 0.16;
-    state.enemies.push({
+    const difficulty = getDifficultyPreset(state.difficultyId);
+    const healthScale = (1 + (state.wave - 1) * 0.16) * difficulty.enemyHealth;
+    const enemy = {
       id: state.nextEnemyId,
       typeId: next.typeId,
       hp: Math.round(type.hp * healthScale),
       maxHp: Math.round(type.hp * healthScale),
-      speed: type.speed * (1 + Math.min(0.22, state.wave * 0.018)),
-      reward: Math.round(type.reward * (1 + state.wave * 0.04)),
+      speed: type.speed * difficulty.enemySpeed * (1 + Math.min(0.22, state.wave * 0.018)),
+      reward: Math.round(type.reward * difficulty.reward * (1 + state.wave * 0.04)),
       progress: 0,
       slowTimer: 0,
       slowFactor: 1,
       leaked: false,
       ...pointOnPath(0)
-    });
+    };
+    state.enemies.push(enemy);
+    state.spawnedThisWave += 1;
     state.nextEnemyId += 1;
+    addEvent(state, { type: "spawn", enemyType: enemy.typeId, x: enemy.x, y: enemy.y });
     state.spawnTimer += next.delay;
   }
 }
@@ -348,7 +508,9 @@ function updateEnemies(state, deltaSeconds) {
       enemy.leaked = true;
       state.lives -= 1;
       state.lastWaveLeaks += 1;
+      state.waveResolved += 1;
       state.focusStreak = 0;
+      addEvent(state, { type: "leak", enemyType: enemy.typeId, x: enemy.x, y: enemy.y });
     }
   }
 
@@ -371,23 +533,44 @@ function updateTowers(state, deltaSeconds) {
     }
 
     const levelMultiplier = 1 + (tower.level - 1) * 0.42;
-    target.hp -= Math.round(type.damage * levelMultiplier);
+    const damage = Math.round(type.damage * levelMultiplier);
+    target.hp -= damage;
     if (type.slow) {
       target.slowFactor = type.slow;
       target.slowTimer = type.slowDuration + tower.level * 0.18;
     }
+    if (type.chain) {
+      const chainTargets = state.enemies
+        .filter((enemy) => enemy.id !== target.id && distance(target, enemy) <= 82)
+        .slice(0, type.chain);
+      chainTargets.forEach((enemy) => {
+        enemy.hp -= Math.round(damage * 0.55);
+      });
+    }
     tower.cooldownRemaining = Math.max(0.18, type.cooldown - (tower.level - 1) * 0.06);
     tower.lastShotTime = performanceNow();
     tower.targetId = target.id;
+    addEvent(state, { type: "hit", towerType: tower.typeId, enemyType: target.typeId, x: target.x, y: target.y });
   }
 }
 
 function clearDefeatedEnemies(state) {
   const survivors = [];
+  const difficulty = getDifficultyPreset(state.difficultyId);
   for (const enemy of state.enemies) {
     if (enemy.hp <= 0) {
       state.money += enemy.reward;
-      state.score += enemy.reward * 10;
+      state.score += Math.round(enemy.reward * 10 * difficulty.score);
+      state.totalKills += 1;
+      state.defeatedThisWave += 1;
+      state.waveResolved += 1;
+      addEvent(state, {
+        type: "defeat",
+        enemyType: enemy.typeId,
+        x: enemy.x,
+        y: enemy.y,
+        reward: enemy.reward
+      });
     } else {
       survivors.push(enemy);
     }
@@ -401,15 +584,22 @@ function finishWaveIfNeeded(state) {
   }
 
   state.activeWave = false;
+  const unlocked = unlockAvailableTowers(state);
   if (state.lastWaveLeaks === 0) {
     state.focusStreak += 1;
     const bonus = 20 + state.focusStreak * 6;
     state.money += bonus;
-    state.score += bonus * 12;
+    state.score += Math.round(bonus * 12 * getDifficultyPreset(state.difficultyId).score);
     state.message = `Oleada perfecta. Racha de foco x${state.focusStreak}: +${bonus} energia.`;
   } else {
     state.message = `Oleada superada con ${state.lastWaveLeaks} fuga(s). La proxima se ajusta un poco.`;
   }
+  addEvent(state, {
+    type: "wave-complete",
+    wave: state.wave,
+    perfect: state.lastWaveLeaks === 0,
+    unlocked
+  });
 }
 
 function findTarget(state, tower, range) {
@@ -429,6 +619,16 @@ function distance(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.hypot(dx, dy);
+}
+
+function addEvent(state, event) {
+  if (!state.eventQueue) {
+    state.eventQueue = [];
+  }
+  state.eventQueue.push({
+    at: performanceNow(),
+    ...event
+  });
 }
 
 function performanceNow() {

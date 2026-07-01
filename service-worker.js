@@ -5,7 +5,11 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./src/styles.css",
   "./src/main.js",
+  "./src/audio.js",
   "./src/gameLogic.js",
+  "./src/renderer.js",
+  "./src/storage.js",
+  "./src/ui.js",
   "./assets/icon.svg"
 ];
 
