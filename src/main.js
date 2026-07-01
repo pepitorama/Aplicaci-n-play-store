@@ -27,6 +27,7 @@ import {
   markTutorialSeen,
   recordNewRun,
   saveProfile,
+  setHighContrast,
   setMuted,
   setPreferredMap,
   updateProfileFromState
@@ -53,6 +54,7 @@ const ui = createUi(elements, {
   onStartWave: () => startWaveFromInput(),
   onRestart: () => restartGame(),
   onToggleMute: () => toggleMute(),
+  onToggleContrast: () => toggleContrast(),
   onDifficulty: (difficultyId) => chooseDifficulty(difficultyId),
   onTowerSelect: (towerId) => selectTower(towerId),
   onReward: (rewardId) => chooseReward(rewardId),
@@ -69,6 +71,7 @@ const ui = createUi(elements, {
 
 bindCanvas();
 bindKeyboard();
+applyAccessibilityPreferences();
 renderUi();
 if (!profile.tutorialSeen) {
   ui.showTutorial();
@@ -172,7 +175,7 @@ function startWaveFromInput() {
   sound.resume();
   ui.hideRewards();
   if (!runRecorded && state.wave === 0) {
-    profile = recordNewRun(profile, state.difficultyId);
+    profile = recordNewRun(profile, state.difficultyId, state.mapId);
     runRecorded = true;
   }
   startNextWave(state);
@@ -251,6 +254,12 @@ function sellSelectedTower() {
 function toggleMute() {
   profile = setMuted(profile, !profile.muted);
   sound.setMuted(profile.muted);
+  renderUi();
+}
+
+function toggleContrast() {
+  profile = setHighContrast(profile, !profile.highContrast);
+  applyAccessibilityPreferences();
   renderUi();
 }
 
@@ -343,6 +352,10 @@ function renderUi() {
     speedMultiplier,
     missions: evaluateMissions(profile, state).missionStates
   });
+}
+
+function applyAccessibilityPreferences() {
+  document.body.classList.toggle("high-contrast", Boolean(profile.highContrast));
 }
 
 function syncProfileFromState() {

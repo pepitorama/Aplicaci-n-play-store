@@ -6,12 +6,14 @@ export const DEFAULT_PROFILE = {
   totalRuns: 0,
   tutorialSeen: false,
   muted: false,
+  highContrast: false,
   difficultyId: "normal",
   mapId: "classic",
   unlockedTowerTypes: ["packet", "firewall", "freezer"],
   achievements: [],
   completedMissions: [],
   mapsPlayed: [],
+  perMapStats: {},
   killsByType: {},
   totalKills: 0
 };
@@ -54,6 +56,15 @@ export function updateProfileFromState(profile, state) {
   const unlocked = Array.from(new Set([...(profile.unlockedTowerTypes || []), ...(state.unlockedTowerTypes || [])]));
   const killsByType = mergeCounts(profile.killsByType || {}, state.killsByType || {});
   const mapsPlayed = Array.from(new Set([...(profile.mapsPlayed || []), state.mapId].filter(Boolean)));
+  const previousMapStats = profile.perMapStats?.[state.mapId] || {};
+  const perMapStats = {
+    ...(profile.perMapStats || {}),
+    [state.mapId]: {
+      bestScore: Math.max(previousMapStats.bestScore || 0, state.score || 0),
+      maxWave: Math.max(previousMapStats.maxWave || 0, state.maxWaveReached || state.wave || 0),
+      runs: previousMapStats.runs || 0
+    }
+  };
   const nextProfile = {
     ...profile,
     bestScore: Math.max(profile.bestScore || 0, state.score || 0),
@@ -62,6 +73,7 @@ export function updateProfileFromState(profile, state) {
     mapId: state.mapId || profile.mapId,
     unlockedTowerTypes: unlocked,
     mapsPlayed,
+    perMapStats,
     killsByType,
     totalKills: Math.max(profile.totalKills || 0, state.totalKills || 0)
   };
@@ -69,11 +81,20 @@ export function updateProfileFromState(profile, state) {
   return nextProfile;
 }
 
-export function recordNewRun(profile, difficultyId) {
+export function recordNewRun(profile, difficultyId, mapId = profile.mapId) {
+  const previousMapStats = profile.perMapStats?.[mapId] || {};
   const nextProfile = {
     ...profile,
     totalRuns: (profile.totalRuns || 0) + 1,
-    difficultyId
+    difficultyId,
+    mapId,
+    perMapStats: {
+      ...(profile.perMapStats || {}),
+      [mapId]: {
+        ...previousMapStats,
+        runs: (previousMapStats.runs || 0) + 1
+      }
+    }
   };
   saveProfile(nextProfile);
   return nextProfile;
@@ -87,6 +108,12 @@ export function setPreferredMap(profile, mapId) {
 
 export function setMuted(profile, muted) {
   const nextProfile = { ...profile, muted };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function setHighContrast(profile, highContrast) {
+  const nextProfile = { ...profile, highContrast };
   saveProfile(nextProfile);
   return nextProfile;
 }

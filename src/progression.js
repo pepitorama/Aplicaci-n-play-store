@@ -29,6 +29,18 @@ export const ACHIEVEMENTS = {
     title: "Explorador de mapas",
     description: "Juega en al menos 3 mapas distintos.",
     isComplete: (state, profile) => new Set([...(profile.mapsPlayed || []), state.mapId].filter(Boolean)).size >= 3
+  },
+  hardModeScout: {
+    id: "hardModeScout",
+    title: "Modo dificil",
+    description: "Inicia una partida en dificultad dificil.",
+    isComplete: (state, profile) => state.difficultyId === "hard" || profile.difficultyId === "hard"
+  },
+  priorityOperator: {
+    id: "priorityOperator",
+    title: "Operador de prioridades",
+    description: "Usa al menos 3 prioridades de objetivo.",
+    isComplete: (state) => new Set(state.targetModesUsed || []).size >= 3
   }
 };
 
@@ -60,6 +72,20 @@ export const MISSIONS = {
     description: "Completa 2 oleadas perfectas.",
     getProgress: (state) => Math.min(2, state.perfectWaves || 0),
     target: 2
+  },
+  sellRecycle: {
+    id: "sellRecycle",
+    title: "Reciclaje tactico",
+    description: "Vende 5 torres para reposicionar tu economia.",
+    getProgress: (state) => Math.min(5, state.towersSold || 0),
+    target: 5
+  },
+  mapTour: {
+    id: "mapTour",
+    title: "Ruta multiple",
+    description: "Juega en 4 mapas distintos.",
+    getProgress: (state, profile) => Math.min(4, new Set([...(profile.mapsPlayed || []), state.mapId].filter(Boolean)).size),
+    target: 4
   }
 };
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "defiende-nucleo-pc-v3";
+const CACHE_NAME = "defiende-nucleo-pc-v4";
 const ASSETS = [
   "./",
   "./index.html",

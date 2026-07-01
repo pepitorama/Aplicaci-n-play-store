@@ -112,7 +112,7 @@ function drawTowers(ctx, state, selectedTowerId) {
     ctx.fillStyle = "#07101e";
     ctx.font = "700 11px Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(type.shortName, tower.x, tower.y + 4);
+    ctx.fillText(type.icon || type.shortName, tower.x, tower.y + 4);
     ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
     ctx.fillText(`L${tower.level}`, tower.x, tower.y + 30);
     ctx.fillText(TARGET_MODES[tower.targetMode || "first"].name.slice(0, 3).toUpperCase(), tower.x, tower.y - 28);
@@ -133,7 +133,7 @@ function drawTowers(ctx, state, selectedTowerId) {
 function drawEnemies(ctx, state) {
   state.enemies.forEach((enemy) => {
     const type = ENEMY_TYPES[enemy.typeId];
-    const radius = enemy.typeId === "botnet" || enemy.typeId === "ransomware" ? 17 : 13;
+    const radius = enemy.typeId === "botnet" || enemy.typeId === "ransomware" || enemy.typeId === "rootkit" ? 17 : enemy.typeId === "ddos" ? 10 : 13;
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, radius, 0, Math.PI * 2);
     ctx.fillStyle = type.color;
@@ -141,6 +141,11 @@ function drawEnemies(ctx, state) {
     ctx.shadowBlur = 14;
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.fillStyle = "#07101e";
+    ctx.font = "700 10px Inter, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(type.icon || "?", enemy.x, enemy.y + 3);
+    ctx.textAlign = "start";
 
     const barWidth = 34;
     const ratio = Math.max(0, enemy.hp / enemy.maxHp);
@@ -174,7 +179,9 @@ function drawEffects(ctx, effects) {
 }
 
 function drawCore(ctx, state) {
-  const core = cellToPoint(13, 5);
+  const path = state.path || PATH;
+  const end = path[path.length - 1];
+  const core = cellToPoint(end.col, end.row);
   const danger = state.lives <= 6;
   const pulse = 4 + Math.sin(performance.now() / (danger ? 90 : 180)) * 3;
   ctx.beginPath();

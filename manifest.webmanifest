@@ -15,5 +15,20 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "education", "simulation"]
+  "categories": ["games", "education", "simulation"],
+  "shortcuts": [
+    {
+      "name": "Jugar",
+      "short_name": "Jugar",
+      "description": "Abrir el simulador defensivo.",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "./assets/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
 }

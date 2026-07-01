@@ -23,8 +23,9 @@ import {
   updateGame,
   upgradeTower
 } from "../src/gameLogic.js";
-import { exportProfile, importProfile } from "../src/storage.js";
+import { exportProfile, importProfile, setHighContrast } from "../src/storage.js";
 import { evaluateAchievements, evaluateMissions } from "../src/progression.js";
+import { getMapDefinition } from "../src/maps.js";
 
 test("places a tower only on valid build cells and charges energy", () => {
   const state = createGameState();
@@ -215,4 +216,60 @@ test("missions, achievements and profile import/export are evaluated safely", ()
   assert.ok(missions.completedMissions.includes("surviveFive"));
   assert.ok(missions.completedMissions.includes("spywareSweep"));
   assert.ok(imported.achievements.includes("firstDefense"));
+});
+
+test("new maps expose gameplay modifiers and affect wave preview size", () => {
+  const classic = previewWave(4, 0, "normal", "classic");
+  const spiral = previewWave(4, 0, "normal", "spiralCore");
+  const expert = getMapDefinition("expertBus");
+
+  const classicCount = Object.values(classic).reduce((total, count) => total + count, 0);
+  const spiralCount = Object.values(spiral).reduce((total, count) => total + count, 0);
+
+  assert.ok(spiralCount >= classicCount);
+  assert.equal(expert.modifiers.enemySpeed > 1, true);
+});
+
+test("advanced towers unlock by wave and can use area or aura properties", () => {
+  const state = createGameState();
+  state.wave = 6;
+  state.unlockedTowerTypes = Object.keys(TOWER_TYPES);
+  state.money = 500;
+
+  assert.equal(isTowerUnlocked(state, "trap"), true);
+  assert.equal(placeTower(state, 1, 1, "trap"), true);
+  assert.equal(placeTower(state, 2, 1, "detector"), true);
+  assert.equal(TOWER_TYPES.trap.splashRadius > 0, true);
+  assert.equal(TOWER_TYPES.detector.rangeBoostAura > 0, true);
+});
+
+test("exploit enemies deal extra core damage when leaking", () => {
+  const state = createGameState();
+  const initialLives = state.lives;
+  state.enemies = [
+    {
+      id: 1,
+      typeId: "exploit",
+      hp: ENEMY_TYPES.exploit.hp,
+      maxHp: ENEMY_TYPES.exploit.hp,
+      speed: 9999,
+      reward: 0,
+      progress: 0,
+      slowTimer: 0,
+      slowFactor: 1,
+      leaked: false,
+      ...cellToPoint(0, 4)
+    }
+  ];
+  state.activeWave = true;
+  state.waveTotal = 1;
+
+  updateGame(state, 1);
+  assert.equal(state.lives, initialLives - ENEMY_TYPES.exploit.leakDamage);
+});
+
+test("profile stores high contrast preference", () => {
+  const profile = setHighContrast({ highContrast: false }, true);
+
+  assert.equal(profile.highContrast, true);
 });

@@ -81,6 +81,7 @@ export const TOWER_TYPES = {
     cooldown: 0.62,
     color: "#40d9ff",
     unlockWave: 0,
+    icon: "A",
     description: "Dano rapido y equilibrado contra malware comun."
   },
   firewall: {
@@ -94,6 +95,8 @@ export const TOWER_TYPES = {
     cooldown: 1.05,
     color: "#ffb84a",
     unlockWave: 0,
+    armorPierce: 0.5,
+    icon: "F",
     description: "Golpes pesados contra bots blindados."
   },
   freezer: {
@@ -109,6 +112,7 @@ export const TOWER_TYPES = {
     slowDuration: 1.35,
     color: "#9f7cff",
     unlockWave: 0,
+    icon: "S",
     description: "Reduce velocidad y abre ventanas de reaccion."
   },
   tesla: {
@@ -123,7 +127,70 @@ export const TOWER_TYPES = {
     chain: 2,
     color: "#4dffca",
     unlockWave: 4,
+    armorPierce: 0.35,
+    icon: "I",
     description: "Se desbloquea en oleada 4 y prioriza amenazas avanzadas."
+  },
+  antivirus: {
+    id: "antivirus",
+    name: "Antivirus",
+    shortName: "AV",
+    cost: 65,
+    upgradeCost: 78,
+    damage: 11,
+    range: 126,
+    cooldown: 0.38,
+    color: "#7dff6a",
+    unlockWave: 2,
+    icon: "V",
+    description: "Dano constante para limpiar grupos pequenos."
+  },
+  detector: {
+    id: "detector",
+    name: "Detector",
+    shortName: "DET",
+    cost: 60,
+    upgradeCost: 70,
+    damage: 5,
+    range: 102,
+    cooldown: 1.2,
+    rangeBoostAura: 34,
+    auraRadius: 118,
+    color: "#6aa8ff",
+    unlockWave: 3,
+    icon: "D",
+    description: "Aumenta el rango de torres cercanas."
+  },
+  trap: {
+    id: "trap",
+    name: "Trampa",
+    shortName: "TRP",
+    cost: 80,
+    upgradeCost: 90,
+    damage: 20,
+    range: 92,
+    cooldown: 1.4,
+    splashRadius: 70,
+    color: "#ff6ad5",
+    unlockWave: 5,
+    icon: "T",
+    description: "Dano de area contra grupos compactos."
+  },
+  mirror: {
+    id: "mirror",
+    name: "Servidor espejo",
+    shortName: "ESP",
+    cost: 75,
+    upgradeCost: 86,
+    damage: 7,
+    range: 112,
+    cooldown: 0.95,
+    slowAura: 0.78,
+    auraRadius: 104,
+    color: "#ffd86a",
+    unlockWave: 6,
+    icon: "M",
+    description: "Ralentiza amenazas cercanas y ayuda a reposicionar prioridades."
   }
 };
 
@@ -134,7 +201,8 @@ export const ENEMY_TYPES = {
     hp: 42,
     speed: 47,
     reward: 9,
-    color: "#ff5d73"
+    color: "#ff5d73",
+    icon: "W"
   },
   botnet: {
     id: "botnet",
@@ -142,7 +210,9 @@ export const ENEMY_TYPES = {
     hp: 78,
     speed: 34,
     reward: 14,
-    color: "#ff8d4f"
+    color: "#ff8d4f",
+    damageReduction: 0.18,
+    icon: "B"
   },
   spyware: {
     id: "spyware",
@@ -150,7 +220,8 @@ export const ENEMY_TYPES = {
     hp: 31,
     speed: 66,
     reward: 12,
-    color: "#e0ff5f"
+    color: "#e0ff5f",
+    icon: "S"
   },
   ransomware: {
     id: "ransomware",
@@ -158,7 +229,47 @@ export const ENEMY_TYPES = {
     hp: 118,
     speed: 28,
     reward: 22,
-    color: "#ff4fd8"
+    color: "#ff4fd8",
+    damageReduction: 0.1,
+    icon: "R"
+  },
+  trojan: {
+    id: "trojan",
+    name: "Troyano",
+    hp: 58,
+    speed: 42,
+    reward: 13,
+    color: "#ffcf5f",
+    icon: "T"
+  },
+  rootkit: {
+    id: "rootkit",
+    name: "Rootkit",
+    hp: 96,
+    speed: 31,
+    reward: 18,
+    color: "#b86aff",
+    damageReduction: 0.28,
+    icon: "K"
+  },
+  ddos: {
+    id: "ddos",
+    name: "DDoS",
+    hp: 24,
+    speed: 82,
+    reward: 8,
+    color: "#6afff0",
+    icon: "D"
+  },
+  exploit: {
+    id: "exploit",
+    name: "Exploit",
+    hp: 46,
+    speed: 58,
+    reward: 16,
+    leakDamage: 2,
+    color: "#ff6a6a",
+    icon: "E"
   }
 };
 
@@ -200,8 +311,9 @@ export function setDifficulty(state, difficultyId) {
   }
 
   const preset = getDifficultyPreset(difficultyId);
+  const map = getMapDefinition(state.mapId);
   state.difficultyId = preset.id;
-  state.money = preset.startingMoney;
+  state.money = preset.startingMoney + (map.modifiers?.startingBonus || 0);
   state.lives = preset.startingLives;
   state.message = `Dificultad ${preset.name} seleccionada. Coloca defensas y empieza.`;
   addEvent(state, { type: "difficulty", difficultyId: preset.id });
@@ -214,8 +326,10 @@ export function setMap(state, mapId) {
   }
 
   const map = getMapDefinition(mapId);
+  const difficulty = getDifficultyPreset(state.difficultyId);
   state.mapId = map.id;
   state.path = map.path;
+  state.money = difficulty.startingMoney + (map.modifiers?.startingBonus || 0);
   state.message = `Mapa ${map.name} seleccionado. Ajusta la defensa a su ruta.`;
   addEvent(state, { type: "map", mapId: map.id });
   return true;
@@ -285,7 +399,7 @@ export function createGameState(options = {}) {
   const difficulty = getDifficultyPreset(options.difficultyId);
   const map = getMapDefinition(options.mapId);
   return {
-    money: difficulty.startingMoney,
+    money: difficulty.startingMoney + (map.modifiers?.startingBonus || 0),
     lives: difficulty.startingLives,
     score: 0,
     wave: 0,
@@ -309,6 +423,8 @@ export function createGameState(options = {}) {
     totalKills: 0,
     killsByType: {},
     towersPlacedByType: {},
+    towersSold: 0,
+    targetModesUsed: [],
     perfectWaves: 0,
     maxWaveReached: 0,
     unlockedTowerTypes: getUnlockedTowerTypes(0),
@@ -348,6 +464,7 @@ export function cycleTowerTargetMode(state, towerId) {
   const modeIds = Object.keys(TARGET_MODES);
   const currentIndex = Math.max(0, modeIds.indexOf(tower.targetMode || "first"));
   tower.targetMode = modeIds[(currentIndex + 1) % modeIds.length];
+  state.targetModesUsed = Array.from(new Set([...(state.targetModesUsed || []), tower.targetMode]));
   state.message = `${TOWER_TYPES[tower.typeId].name}: prioridad ${TARGET_MODES[tower.targetMode].name}.`;
   addEvent(state, { type: "target-mode", towerType: tower.typeId, targetMode: tower.targetMode, x: tower.x, y: tower.y });
   return true;
@@ -431,23 +548,43 @@ export function sellTower(state, towerId) {
   const [tower] = state.towers.splice(towerIndex, 1);
   const refund = getTowerSellValue(tower);
   state.money += refund;
+  state.towersSold += 1;
   state.message = `${TOWER_TYPES[tower.typeId].name} vendida: +${refund} energia.`;
   addEvent(state, { type: "sell", towerType: tower.typeId, x: tower.x, y: tower.y, refund });
   return true;
 }
 
-export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal") {
+export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID) {
   const difficulty = getDifficultyPreset(difficultyId);
+  const map = getMapDefinition(mapId);
   const difficultyRelief = leaksLastWave >= 3 ? -1 : 0;
   const adjustedWave = Math.max(1, waveNumber + difficultyRelief);
   const queue = [];
-  const baseCount = Math.max(3, Math.round((5 + adjustedWave * 1.8) * difficulty.waveSize));
+  const baseCount = Math.max(3, Math.round((5 + adjustedWave * 1.8) * difficulty.waveSize * (map.modifiers?.waveSize || 1)));
 
   for (let index = 0; index < baseCount; index += 1) {
+    const isDdos = adjustedWave >= 2 && index % 7 === 2;
     const isFast = adjustedWave >= 2 && index % 5 === 3;
+    const isTrojan = adjustedWave >= 3 && index % 8 === 4;
+    const isExploit = adjustedWave >= 4 && index % 9 === 6;
+    const isRootkit = adjustedWave >= 5 && index % 10 === 7;
     const isTank = adjustedWave >= 3 && index % 6 === 5;
     const isBoss = adjustedWave >= 5 && index === baseCount - 1;
-    const typeId = isBoss ? "ransomware" : isTank ? "botnet" : isFast ? "spyware" : "worm";
+    const typeId = isBoss
+      ? "ransomware"
+      : isRootkit
+        ? "rootkit"
+        : isExploit
+          ? "exploit"
+          : isTank
+            ? "botnet"
+            : isTrojan
+              ? "trojan"
+              : isDdos
+                ? "ddos"
+                : isFast
+                  ? "spyware"
+                  : "worm";
     queue.push({
       typeId,
       delay: index === 0 ? 0.2 : 0.58 + Math.max(0, 0.04 - adjustedWave * 0.004)
@@ -457,8 +594,8 @@ export function buildWave(waveNumber, leaksLastWave = 0, difficultyId = "normal"
   return queue;
 }
 
-export function previewWave(waveNumber, leaksLastWave = 0, difficultyId = "normal") {
-  return buildWave(waveNumber, leaksLastWave, difficultyId).reduce((summary, item) => {
+export function previewWave(waveNumber, leaksLastWave = 0, difficultyId = "normal", mapId = DEFAULT_MAP_ID) {
+  return buildWave(waveNumber, leaksLastWave, difficultyId, mapId).reduce((summary, item) => {
     summary[item.typeId] = (summary[item.typeId] || 0) + 1;
     return summary;
   }, {});
@@ -471,7 +608,7 @@ export function startNextWave(state) {
 
   state.wave += 1;
   state.maxWaveReached = Math.max(state.maxWaveReached, state.wave);
-  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks, state.difficultyId);
+  state.waveQueue = buildWave(state.wave, state.lastWaveLeaks, state.difficultyId, state.mapId);
   state.waveTotal = state.waveQueue.length;
   state.waveResolved = 0;
   state.spawnedThisWave = 0;
@@ -548,14 +685,15 @@ function spawnEnemies(state, deltaSeconds) {
     const next = state.waveQueue.shift();
     const type = ENEMY_TYPES[next.typeId];
     const difficulty = getDifficultyPreset(state.difficultyId);
+    const map = getMapDefinition(state.mapId);
     const healthScale = (1 + (state.wave - 1) * 0.16) * difficulty.enemyHealth;
     const enemy = {
       id: state.nextEnemyId,
       typeId: next.typeId,
       hp: Math.round(type.hp * healthScale),
       maxHp: Math.round(type.hp * healthScale),
-      speed: type.speed * difficulty.enemySpeed * (1 + Math.min(0.22, state.wave * 0.018)),
-      reward: Math.round(type.reward * difficulty.reward * (1 + state.wave * 0.04)),
+      speed: type.speed * difficulty.enemySpeed * (map.modifiers?.enemySpeed || 1) * (1 + Math.min(0.22, state.wave * 0.018)),
+      reward: Math.round(type.reward * difficulty.reward * (map.modifiers?.reward || 1) * (1 + state.wave * 0.04)),
       progress: 0,
       slowTimer: 0,
       slowFactor: 1,
@@ -571,6 +709,7 @@ function spawnEnemies(state, deltaSeconds) {
 }
 
 function updateEnemies(state, deltaSeconds) {
+  applyTowerAuras(state);
   for (const enemy of state.enemies) {
     const speedMultiplier = enemy.slowTimer > 0 ? enemy.slowFactor : 1;
     enemy.slowTimer = Math.max(0, enemy.slowTimer - deltaSeconds);
@@ -581,7 +720,7 @@ function updateEnemies(state, deltaSeconds) {
 
     if (enemy.progress >= pathLength(state.path || PATH) && !enemy.leaked) {
       enemy.leaked = true;
-      state.lives -= 1;
+      state.lives -= ENEMY_TYPES[enemy.typeId].leakDamage || 1;
       state.lastWaveLeaks += 1;
       state.waveResolved += 1;
       state.focusStreak = 0;
@@ -601,14 +740,14 @@ function updateTowers(state, deltaSeconds) {
       continue;
     }
 
-    const target = findTarget(state, tower, type.range + tower.level * 8);
+    const target = findTarget(state, tower, getEffectiveRange(state, tower));
     if (!target) {
       tower.targetId = null;
       continue;
     }
 
     const levelMultiplier = 1 + (tower.level - 1) * 0.42;
-    const damage = Math.round(type.damage * levelMultiplier);
+    const damage = getAppliedDamage(type, target, levelMultiplier);
     target.hp -= damage;
     if (type.slow) {
       target.slowFactor = type.slow;
@@ -621,6 +760,13 @@ function updateTowers(state, deltaSeconds) {
       chainTargets.forEach((enemy) => {
         enemy.hp -= Math.round(damage * 0.55);
       });
+    }
+    if (type.splashRadius) {
+      state.enemies
+        .filter((enemy) => enemy.id !== target.id && distance(target, enemy) <= type.splashRadius + tower.level * 4)
+        .forEach((enemy) => {
+          enemy.hp -= getAppliedDamage(type, enemy, levelMultiplier * 0.55);
+        });
     }
     tower.cooldownRemaining = Math.max(0.18, type.cooldown - (tower.level - 1) * 0.06);
     tower.lastShotTime = performanceNow();
@@ -697,6 +843,50 @@ function findTarget(state, tower, range) {
   }
 
   return candidates.reduce((best, enemy) => (enemy.progress > best.progress ? enemy : best));
+}
+
+function applyTowerAuras(state) {
+  const auraTowers = state.towers.filter((tower) => TOWER_TYPES[tower.typeId].slowAura);
+  if (auraTowers.length === 0) {
+    return;
+  }
+
+  for (const tower of auraTowers) {
+    const type = TOWER_TYPES[tower.typeId];
+    const auraRadius = type.auraRadius + tower.level * 10;
+    state.enemies.forEach((enemy) => {
+      if (distance(tower, enemy) <= auraRadius) {
+        enemy.slowFactor = Math.min(enemy.slowFactor || 1, type.slowAura);
+        enemy.slowTimer = Math.max(enemy.slowTimer || 0, 0.18);
+      }
+    });
+  }
+}
+
+function getEffectiveRange(state, tower) {
+  const type = TOWER_TYPES[tower.typeId];
+  const baseRange = type.range + tower.level * 8;
+  const boost = state.towers.reduce((total, otherTower) => {
+    if (otherTower.id === tower.id) {
+      return total;
+    }
+    const otherType = TOWER_TYPES[otherTower.typeId];
+    if (!otherType.rangeBoostAura) {
+      return total;
+    }
+    const auraRadius = otherType.auraRadius + otherTower.level * 8;
+    if (distance(tower, otherTower) > auraRadius) {
+      return total;
+    }
+    return total + otherType.rangeBoostAura + otherTower.level * 3;
+  }, 0);
+  return baseRange + boost;
+}
+
+function getAppliedDamage(towerType, enemy, levelMultiplier) {
+  const enemyType = ENEMY_TYPES[enemy.typeId];
+  const reduction = Math.max(0, (enemyType.damageReduction || 0) - (towerType.armorPierce || 0));
+  return Math.max(1, Math.round(towerType.damage * levelMultiplier * (1 - reduction)));
 }
 
 function distance(a, b) {

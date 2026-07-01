@@ -9,6 +9,19 @@
     <link rel="stylesheet" href="./src/styles.css">
   </head>
   <body>
+    <section id="start-panel" class="start-panel">
+      <div class="start-card">
+        <p class="eyebrow">Simulacion PC defensiva</p>
+        <h1>Defiende el Nucleo PC</h1>
+        <p>Elige mapa, combina defensas y protege el CPU de oleadas de malware con sesiones cortas y progreso local.</p>
+        <div class="tutorial-actions">
+          <button id="start-tutorial" type="button">Ver tutorial</button>
+          <button id="start-progress" type="button">Ver progreso</button>
+          <button id="start-play" class="primary" type="button">Jugar</button>
+        </div>
+      </div>
+    </section>
+
     <header class="hero">
       <div>
         <p class="eyebrow">Tower defense + simulacion de seguridad en PC</p>
@@ -56,6 +69,7 @@
             <button id="sell-tower" type="button">Vender</button>
             <button id="restart" type="button">Reiniciar</button>
             <button id="mute-toggle" type="button">Sonido: ON</button>
+            <button id="contrast-toggle" type="button">Contraste</button>
           </div>
         </div>
       </section>
@@ -81,7 +95,7 @@
         <section>
           <h2>3. Lee la proxima amenaza</h2>
           <div id="wave-preview" class="preview-list"></div>
-          <p class="hint">Pulsa espacio para iniciar. Usa 1-4 para defensas, P para pausa, F para velocidad y T para prioridad.</p>
+          <p class="hint">Pulsa espacio para iniciar. Usa teclas numericas para defensas, P pausa, F velocidad y T prioridad.</p>
         </section>
 
         <section class="attention-list">

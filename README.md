@@ -47,19 +47,34 @@ Fuentes consultadas:
 - Tablero canvas 14x9 con ruta visible.
 - Tutorial inicial de tres pasos para reducir friccion en la primera partida.
 - Dificultad seleccionable: facil, normal y dificil.
-- Selector de mapas: Nucleo clasico, Circuito largo, Cache angular y Linea dura.
-- Tres defensas:
+- Pantalla inicial con accesos a jugar, tutorial y progreso.
+- Modo de alto contraste para accesibilidad.
+- Selector de mapas con modificadores de recompensa, velocidad, oleadas y energia:
+  - Nucleo clasico
+  - Circuito largo
+  - Cache angular
+  - Linea dura
+  - Espiral del nucleo
+  - Parche rapido
+  - Bus experto
+- Ocho defensas:
   - **Analizador:** rapido y equilibrado.
   - **Firewall:** dano alto contra enemigos resistentes.
   - **Sandbox:** ralentiza amenazas.
-- Defensa desbloqueable:
   - **IA Centinela:** se desbloquea con progreso o con recompensa de plano.
-- Tres enemigos:
+  - **Antivirus:** dano constante.
+  - **Detector:** aumenta rango de torres cercanas.
+  - **Trampa:** dano de area.
+  - **Servidor espejo:** ralentiza amenazas cercanas.
+- Ocho enemigos:
   - **Gusano:** comun.
   - **Spyware:** rapido.
   - **Botnet:** resistente.
-- Enemigo avanzado:
   - **Ransomware:** amenaza lenta y resistente de oleadas superiores.
+  - **Troyano:** amenaza media.
+  - **Rootkit:** resistente al dano basico.
+  - **DDoS:** amenaza pequena y veloz.
+  - **Exploit:** si llega al nucleo quita mas integridad.
 - Oleadas con vista previa.
 - Barra de progreso de oleada.
 - Pausa y velocidad de simulacion x1/x2/x3 para probar estrategias en PC.
@@ -71,7 +86,7 @@ Fuentes consultadas:
 - Economia por energia, upgrades, puntuacion e integridad del nucleo.
 - Micro-recompensas tras cada oleada.
 - Ajuste de dificultad si la oleada anterior tuvo muchas fugas.
-- Guardado local de record, maxima oleada, partidas jugadas, dificultad y desbloqueos.
+- Guardado local de record, maxima oleada, estadisticas por mapa, partidas jugadas, dificultad y desbloqueos.
 - Sonidos sinteticos ligeros con opcion de silencio.
 - Feedback visual de rango, impactos, derrotas y alertas del nucleo.
 - PWA con manifest, icono y service worker offline.
@@ -114,13 +129,14 @@ npm test
 - Click en casilla libre: colocar defensa seleccionada.
 - Click en torre existente: mejorar si hay energia.
 - `Shift` + click en torre: cambiar prioridad de objetivo.
-- Teclas `1`, `2`, `3`, `4`: cambiar defensa si esta desbloqueada.
+- Teclas numericas: cambiar defensa si esta desbloqueada.
 - `Espacio`: iniciar oleada.
 - `P`: pausar/reanudar.
 - `F`: cambiar velocidad x1/x2/x3.
 - `T`: cambiar prioridad de la torre seleccionada.
 - Boton vender: vende la torre seleccionada.
 - Boton de sonido: activar/desactivar efectos.
+- Boton contraste: activa/desactiva alto contraste.
 
 ## Siguientes pasos recomendados
 

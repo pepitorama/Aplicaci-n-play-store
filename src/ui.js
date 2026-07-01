@@ -37,6 +37,7 @@ export function createUi(elements, callbacks) {
   elements.startWave.addEventListener("click", callbacks.onStartWave);
   elements.restart.addEventListener("click", callbacks.onRestart);
   elements.muteToggle.addEventListener("click", callbacks.onToggleMute);
+  elements.contrastToggle.addEventListener("click", callbacks.onToggleContrast);
   elements.pauseToggle.addEventListener("click", callbacks.onTogglePause);
   elements.speedToggle.addEventListener("click", callbacks.onToggleSpeed);
   elements.targetToggle.addEventListener("click", callbacks.onTargetMode);
@@ -46,6 +47,19 @@ export function createUi(elements, callbacks) {
   elements.gameOverRetry.addEventListener("click", callbacks.onGameOverRetry);
   elements.gameOverClose.addEventListener("click", () => {
     elements.gameOverPanel.hidden = true;
+  });
+  elements.startPlay.addEventListener("click", () => {
+    elements.startPanel.hidden = true;
+  });
+  elements.startTutorial.addEventListener("click", () => {
+    elements.startPanel.hidden = true;
+    tutorialIndex = 0;
+    renderTutorial(elements, tutorialIndex);
+    elements.tutorialPanel.hidden = false;
+  });
+  elements.startProgress.addEventListener("click", () => {
+    elements.startPanel.hidden = true;
+    elements.missionList.scrollIntoView({ behavior: "smooth", block: "center" });
   });
   elements.tutorialNext.addEventListener("click", () => {
     tutorialIndex += 1;
@@ -79,7 +93,7 @@ export function createUi(elements, callbacks) {
       }
       const nextMapSignature = `${state.mapId}:${state.wave}:${state.towers.length}:${state.activeWave}`;
       if (nextMapSignature !== mapSignature) {
-        renderMapCards(elements, state, callbacks.onMap);
+        renderMapCards(elements, state, profile, callbacks.onMap);
         mapSignature = nextMapSignature;
       }
       const nextTowerSignature = `${state.selectedTowerType}:${state.money}:${state.unlockedTowerTypes.join(",")}`;
@@ -107,6 +121,9 @@ export function createUi(elements, callbacks) {
     },
     hideGameOver() {
       elements.gameOverPanel.hidden = true;
+    },
+    hideStart() {
+      elements.startPanel.hidden = true;
     }
   };
 }
@@ -125,12 +142,17 @@ export function collectUiElements() {
     difficultyCards: document.querySelector("#difficulty-cards"),
     mapCards: document.querySelector("#map-cards"),
     startWave: document.querySelector("#start-wave"),
+    startPanel: document.querySelector("#start-panel"),
+    startPlay: document.querySelector("#start-play"),
+    startTutorial: document.querySelector("#start-tutorial"),
+    startProgress: document.querySelector("#start-progress"),
     restart: document.querySelector("#restart"),
     pauseToggle: document.querySelector("#pause-toggle"),
     speedToggle: document.querySelector("#speed-toggle"),
     targetToggle: document.querySelector("#target-toggle"),
     sellTower: document.querySelector("#sell-tower"),
     muteToggle: document.querySelector("#mute-toggle"),
+    contrastToggle: document.querySelector("#contrast-toggle"),
     rewardPanel: document.querySelector("#reward-panel"),
     rewardCards: document.querySelector("#reward-cards"),
     selectedInfo: document.querySelector("#selected-info"),
@@ -164,6 +186,7 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.startWave.disabled = state.activeWave || state.enemies.length > 0 || state.lives <= 0;
   elements.preview.innerHTML = previewHtml(state);
   elements.muteToggle.textContent = profile.muted ? "Sonido: OFF" : "Sonido: ON";
+  elements.contrastToggle.textContent = profile.highContrast ? "Contraste: Alto" : "Contraste";
   elements.pauseToggle.textContent = session.isPaused ? "Continuar" : "Pausar";
   elements.pauseToggle.disabled = state.lives <= 0;
   elements.speedToggle.textContent = `Velocidad x${session.speedMultiplier || 1}`;
@@ -206,9 +229,10 @@ function renderDifficultyCards(elements, state, onDifficulty) {
   });
 }
 
-function renderMapCards(elements, state, onMap) {
+function renderMapCards(elements, state, profile, onMap) {
   elements.mapCards.innerHTML = "";
   Object.values(MAPS).forEach((map) => {
+    const stats = profile.perMapStats?.[map.id] || {};
     const button = document.createElement("button");
     button.type = "button";
     button.className = `map-card ${state.mapId === map.id ? "selected" : ""}`;
@@ -217,6 +241,7 @@ function renderMapCards(elements, state, onMap) {
       <strong>${map.name}</strong>
       <span>${map.difficulty}</span>
       <small>${map.description}</small>
+      <small>Recompensa x${map.modifiers.reward} | Velocidad x${map.modifiers.enemySpeed} | Record ${stats.bestScore || 0}</small>
     `;
     button.addEventListener("click", () => onMap(map.id));
     elements.mapCards.append(button);
@@ -299,7 +324,7 @@ function renderRewards(elements, state, onReward) {
 
 function previewHtml(state) {
   const nextWave = state.activeWave ? state.wave : state.wave + 1;
-  return Object.entries(previewWave(nextWave, state.lastWaveLeaks, state.difficultyId))
+  return Object.entries(previewWave(nextWave, state.lastWaveLeaks, state.difficultyId, state.mapId))
     .map(([typeId, count]) => {
       const enemy = ENEMY_TYPES[typeId];
       return `<span class="preview-pill" style="--enemy-color:${enemy.color}">${enemy.name}: ${count}</span>`;
