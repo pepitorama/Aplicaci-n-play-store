@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   DIFFICULTY_PRESETS,
@@ -44,6 +45,7 @@ import { getMapDefinition } from "../src/maps.js";
 import { getDailyChallenge, describeDailyChallenge } from "../src/dailyChallenge.js";
 import { getBalanceSuggestions, getMapAnalysis } from "../src/analysis.js";
 import { getBalanceCurve } from "../src/config/balance.js";
+import { MAPS, getMapIds } from "../src/maps.js";
 
 test("places a tower only on valid build cells and charges energy", () => {
   const state = createGameState();
@@ -367,7 +369,10 @@ test("system events activate on scheduled waves", () => {
 test("invalid profile imports are rejected", () => {
   assert.throws(() => importProfile("[]"));
   assert.throws(() => importProfile("{bad json"));
-  assert.throws(() => importProfile(JSON.stringify({ bestScore: "bad" })));
+  assert.throws(() => importProfile(JSON.stringify({ note: "x".repeat(21000) })));
+  const sanitized = importProfile(JSON.stringify({ bestScore: "bad", unexpectedField: true }));
+  assert.equal(sanitized.bestScore, 0);
+  assert.equal(sanitized.unexpectedField, undefined);
 });
 
 test("research purchase is blocked without enough points", () => {
@@ -440,4 +445,49 @@ test("balance curves expose map-specific pacing", () => {
   const hardLine = getBalanceCurve("hardLine");
 
   assert.notEqual(classic.enemyHealthPerWave, hardLine.enemyHealthPerWave);
+});
+
+test("configuration snapshot keeps unique ids and valid map routes", () => {
+  const towerIds = Object.keys(TOWER_TYPES);
+  const enemyIds = Object.keys(ENEMY_TYPES);
+  const mapIds = getMapIds();
+
+  assert.equal(new Set(towerIds).size, towerIds.length);
+  assert.equal(new Set(enemyIds).size, enemyIds.length);
+  assert.equal(new Set(mapIds).size, mapIds.length);
+  assert.ok(towerIds.length >= 8);
+  assert.ok(enemyIds.length >= 8);
+  assert.ok(mapIds.length >= 7);
+
+  Object.values(TOWER_TYPES).forEach((tower) => {
+    assert.ok(tower.cost > 0);
+    assert.ok(tower.unlockWave >= 0);
+  });
+
+  Object.values(MAPS).forEach((map) => {
+    assert.ok(map.path.length >= 2);
+    map.path.forEach((point) => {
+      assert.ok(point.col >= 0 && point.col < 14);
+      assert.ok(point.row >= 0 && point.row < 9);
+    });
+  });
+});
+
+test("service worker cache includes critical app shell assets", () => {
+  const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
+
+  [
+    "./index.html",
+    "./offline.html",
+    "./help.html",
+    "./privacy.html",
+    "./src/appMeta.js",
+    "./src/main.js",
+    "./src/analysis.js",
+    "./src/dailyChallenge.js",
+    "./src/config/difficulty.js",
+    "./src/config/balance.js"
+  ].forEach((asset) => {
+    assert.ok(serviceWorker.includes(asset), `${asset} should be cached`);
+  });
 });

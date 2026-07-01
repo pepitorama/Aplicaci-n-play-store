@@ -95,7 +95,11 @@ const ui = createUi(elements, {
   onCampaignStep: (step) => chooseCampaignStep(step),
   onBuyResearch: (upgradeId) => buyResearch(upgradeId),
   onStartDaily: () => startDailyChallenge(),
-  onStartPracticeWave: (options) => startPracticeWave(options)
+  onStartPracticeWave: (options) => startPracticeWave(options),
+  onPracticeEnergy: () => practiceGrantEnergy(),
+  onPracticeDamage: () => practiceDamageCore(),
+  onPracticeClear: () => practiceClearEnemies(),
+  onPracticeUnlock: () => practiceUnlockTowers()
 });
 
 bindCanvas();
@@ -401,6 +405,53 @@ function startPracticeWave(options) {
   renderUi();
 }
 
+function practiceGrantEnergy() {
+  if (!ensurePracticeMode()) {
+    return;
+  }
+  state.money += 100;
+  state.message = "Practica: +100 energia.";
+  renderUi();
+}
+
+function practiceDamageCore() {
+  if (!ensurePracticeMode()) {
+    return;
+  }
+  state.lives = Math.max(0, state.lives - 1);
+  state.message = "Practica: nucleo danado para probar fin de partida.";
+  renderUi();
+}
+
+function practiceClearEnemies() {
+  if (!ensurePracticeMode()) {
+    return;
+  }
+  state.enemies = [];
+  state.waveQueue = [];
+  state.activeWave = false;
+  state.message = "Practica: enemigos limpiados.";
+  renderUi();
+}
+
+function practiceUnlockTowers() {
+  if (!ensurePracticeMode()) {
+    return;
+  }
+  state.unlockedTowerTypes = Object.keys(TOWER_TYPES);
+  state.message = "Practica: todas las defensas desbloqueadas temporalmente.";
+  renderUi();
+}
+
+function ensurePracticeMode() {
+  if (!profile.practiceMode) {
+    state.message = "Activa modo practica para usar esta herramienta.";
+    renderUi();
+    return false;
+  }
+  return true;
+}
+
 function buyResearch(upgradeId) {
   if (state.wave > 0 || state.towers.length > 0 || state.activeWave) {
     state.message = "La investigacion se compra antes de iniciar una simulacion.";
@@ -606,7 +657,7 @@ function updateEffects(deltaSeconds) {
   effects.forEach((effect) => {
     effect.age += deltaSeconds;
   });
-  effects = effects.filter((effect) => effect.age < effect.duration);
+  effects = effects.filter((effect) => effect.age < effect.duration).slice(-80);
 }
 
 function effectColor(type) {

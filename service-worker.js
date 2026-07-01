@@ -4,9 +4,12 @@ const ASSETS = [
   "./index.html",
   "./help.html",
   "./privacy.html",
+  "./offline.html",
+  "./CHANGELOG.md",
   "./manifest.webmanifest",
   "./src/styles.css",
   "./src/main.js",
+  "./src/appMeta.js",
   "./src/audio.js",
   "./src/analysis.js",
   "./src/config/difficulty.js",
@@ -41,5 +44,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => caches.match("./offline.html")))
+  );
 });

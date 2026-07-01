@@ -4,11 +4,22 @@ export function createRenderer(canvas) {
   const ctx = canvas.getContext("2d");
   canvas.width = GRID.cols * GRID.cellSize;
   canvas.height = GRID.rows * GRID.cellSize;
+  const staticCanvas = document.createElement("canvas");
+  staticCanvas.width = canvas.width;
+  staticCanvas.height = canvas.height;
+  const staticCtx = staticCanvas.getContext("2d");
+  let staticKey = "";
 
   return {
     render(state, { selectedTowerId = null, effects = [], colorMode = "default" } = {}) {
-      drawBackground(ctx, canvas);
-      drawPath(ctx, state.path || PATH);
+      const path = state.path || PATH;
+      const nextStaticKey = `${state.mapId}:${colorMode}:${path.map((point) => `${point.col}-${point.row}`).join("|")}`;
+      if (nextStaticKey !== staticKey) {
+        drawBackground(staticCtx, staticCanvas);
+        drawPath(staticCtx, path);
+        staticKey = nextStaticKey;
+      }
+      ctx.drawImage(staticCanvas, 0, 0);
       drawBuildHints(ctx, state);
       drawAuras(ctx, state, colorMode);
       drawSelectedRange(ctx, state, selectedTowerId);

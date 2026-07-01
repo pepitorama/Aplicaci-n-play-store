@@ -12,6 +12,7 @@ import {
   previewWave
 } from "./gameLogic.js";
 import { ACHIEVEMENTS, getProfileSummary, getResearchUpgradeCost } from "./progression.js";
+import { APP_META } from "./appMeta.js";
 
 const TUTORIAL_STEPS = [
   {
@@ -27,6 +28,8 @@ const TUTORIAL_STEPS = [
     body: "Click en una torre para subirla de nivel. Al terminar cada oleada elige una micro-recompensa para mantener el ritmo."
   }
 ];
+
+let lastFocusedElement = null;
 
 export function createUi(elements, callbacks) {
   let tutorialIndex = 0;
@@ -57,9 +60,13 @@ export function createUi(elements, callbacks) {
       enemyType: elements.practiceEnemy.value
     });
   });
+  elements.practiceEnergy.addEventListener("click", callbacks.onPracticeEnergy);
+  elements.practiceDamage.addEventListener("click", callbacks.onPracticeDamage);
+  elements.practiceClear.addEventListener("click", callbacks.onPracticeClear);
+  elements.practiceUnlock.addEventListener("click", callbacks.onPracticeUnlock);
   elements.gameOverRetry.addEventListener("click", callbacks.onGameOverRetry);
   elements.gameOverClose.addEventListener("click", () => {
-    elements.gameOverPanel.hidden = true;
+    closePanel(elements.gameOverPanel);
   });
   elements.startPlay.addEventListener("click", () => {
     elements.startPanel.hidden = true;
@@ -68,7 +75,7 @@ export function createUi(elements, callbacks) {
     elements.startPanel.hidden = true;
     tutorialIndex = 0;
     renderTutorial(elements, tutorialIndex);
-    elements.tutorialPanel.hidden = false;
+    openPanel(elements.tutorialPanel);
   });
   elements.startProgress.addEventListener("click", () => {
     elements.startPanel.hidden = true;
@@ -78,21 +85,30 @@ export function createUi(elements, callbacks) {
     tutorialIndex += 1;
     if (tutorialIndex >= TUTORIAL_STEPS.length) {
       callbacks.onTutorialDone();
-      hideTutorial(elements);
+      closePanel(elements.tutorialPanel);
       return;
     }
     renderTutorial(elements, tutorialIndex);
   });
   elements.tutorialSkip.addEventListener("click", () => {
     callbacks.onTutorialDone();
-    hideTutorial(elements);
+    closePanel(elements.tutorialPanel);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      [elements.rewardPanel, elements.gameOverPanel, elements.tutorialPanel, elements.startPanel].forEach((panel) => {
+        if (!panel.hidden) {
+          closePanel(panel);
+        }
+      });
+    }
   });
 
   return {
     showTutorial() {
       tutorialIndex = 0;
       renderTutorial(elements, tutorialIndex);
-      elements.tutorialPanel.hidden = false;
+      openPanel(elements.tutorialPanel);
     },
     hideTutorial() {
       hideTutorial(elements);
@@ -127,24 +143,25 @@ export function createUi(elements, callbacks) {
       renderMapAnalysis(elements, session.mapAnalysis);
       renderSuggestions(elements, session.balanceSuggestions || []);
       renderPracticeOptions(elements);
+      renderAppStatus(elements, profile);
       renderProfile(elements, profile);
     },
     showRewards(state) {
       renderRewards(elements, state, callbacks.onReward);
-      elements.rewardPanel.hidden = false;
+      openPanel(elements.rewardPanel);
     },
     hideRewards() {
-      elements.rewardPanel.hidden = true;
+      closePanel(elements.rewardPanel);
     },
     showGameOver(state, profile) {
       renderGameOver(elements, state, profile);
-      elements.gameOverPanel.hidden = false;
+      openPanel(elements.gameOverPanel);
     },
     hideGameOver() {
-      elements.gameOverPanel.hidden = true;
+      closePanel(elements.gameOverPanel);
     },
     hideStart() {
-      elements.startPanel.hidden = true;
+      closePanel(elements.startPanel);
     }
   };
 }
@@ -195,6 +212,11 @@ export function collectUiElements() {
     practiceWave: document.querySelector("#practice-wave"),
     practiceEnemy: document.querySelector("#practice-enemy"),
     practiceStart: document.querySelector("#practice-start"),
+    practiceEnergy: document.querySelector("#practice-energy"),
+    practiceDamage: document.querySelector("#practice-damage"),
+    practiceClear: document.querySelector("#practice-clear"),
+    practiceUnlock: document.querySelector("#practice-unlock"),
+    appStatus: document.querySelector("#app-status"),
     exportProgress: document.querySelector("#export-progress"),
     importProgress: document.querySelector("#import-progress"),
     resetProgress: document.querySelector("#reset-progress"),
@@ -465,6 +487,16 @@ function renderPracticeOptions(elements) {
   elements.practiceEnemy.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
 }
 
+function renderAppStatus(elements, profile) {
+  const online = navigator.onLine ? "online" : "offline";
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches ? "PWA instalada" : "navegador";
+  elements.appStatus.innerHTML = `
+    <p><strong>Version:</strong> ${APP_META.version} (${APP_META.buildDate})</p>
+    <p><strong>Perfil:</strong> v${profile.version || APP_META.profileVersion} | Estado: ${online} | Modo: ${standalone}</p>
+    <p><strong>Practice:</strong> ${profile.practiceMode ? "activo" : "inactivo"} | Color: ${profile.colorMode || "default"}</p>
+  `;
+}
+
 function renderRewards(elements, state, onReward) {
   const rewards = [
     ["cache", "Cache tactica", "+45 energia para decidir rapido."],
@@ -543,5 +575,19 @@ function towerStatsHtml(tower) {
 }
 
 function hideTutorial(elements) {
-  elements.tutorialPanel.hidden = true;
+  closePanel(elements.tutorialPanel);
+}
+
+function openPanel(panel) {
+  lastFocusedElement = document.activeElement;
+  panel.hidden = false;
+  const focusTarget = panel.querySelector("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+  focusTarget?.focus();
+}
+
+function closePanel(panel) {
+  panel.hidden = true;
+  if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+    lastFocusedElement.focus();
+  }
 }

@@ -1,6 +1,7 @@
 const PROFILE_VERSION = 2;
 const STORAGE_KEY = "defiende-nucleo-pc-profile-v1";
 const BACKUP_KEY = "defiende-nucleo-pc-profile-backup-v1";
+const PROFILE_IMPORT_MAX_LENGTH = 20000;
 
 export const DEFAULT_PROFILE = {
   version: PROFILE_VERSION,
@@ -251,6 +252,9 @@ export function exportProfile(profile) {
 }
 
 export function importProfile(serializedProfile) {
+  if (serializedProfile.length > PROFILE_IMPORT_MAX_LENGTH) {
+    throw new Error("Profile payload too large");
+  }
   const parsed = JSON.parse(serializedProfile);
   if (!isPlainObject(parsed)) {
     throw new Error("Invalid profile payload");
@@ -280,11 +284,17 @@ function isStorageAvailable() {
 }
 
 function migrateProfile(profile) {
+  const safeProfile = pickKnownProfileFields(profile);
   const nextProfile = {
     ...DEFAULT_PROFILE,
-    ...(isPlainObject(profile) ? profile : {}),
+    ...(isPlainObject(safeProfile) ? safeProfile : {}),
     version: PROFILE_VERSION
   };
+  nextProfile.bestScore = sanitizeNumber(nextProfile.bestScore, 0);
+  nextProfile.maxWave = sanitizeNumber(nextProfile.maxWave, 0);
+  nextProfile.totalRuns = sanitizeNumber(nextProfile.totalRuns, 0);
+  nextProfile.totalKills = sanitizeNumber(nextProfile.totalKills, 0);
+  nextProfile.researchPoints = sanitizeNumber(nextProfile.researchPoints, 0);
   if (!Array.isArray(nextProfile.unlockedTowerTypes)) {
     nextProfile.unlockedTowerTypes = [...DEFAULT_PROFILE.unlockedTowerTypes];
   }
@@ -301,6 +311,22 @@ function migrateProfile(profile) {
     nextProfile.balanceMetrics = { ...DEFAULT_PROFILE.balanceMetrics };
   }
   return nextProfile;
+}
+
+function pickKnownProfileFields(profile) {
+  if (!isPlainObject(profile)) {
+    return {};
+  }
+  return Object.keys(DEFAULT_PROFILE).reduce((safeProfile, key) => {
+    if (Object.prototype.hasOwnProperty.call(profile, key)) {
+      safeProfile[key] = profile[key];
+    }
+    return safeProfile;
+  }, {});
+}
+
+function sanitizeNumber(value, fallback) {
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
 function isPlainObject(value) {

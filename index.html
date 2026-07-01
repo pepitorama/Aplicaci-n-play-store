@@ -132,6 +132,10 @@
             <label>Oleada <input id="practice-wave" type="number" min="1" max="30" value="5"></label>
             <label>Enemigo <select id="practice-enemy"></select></label>
             <button id="practice-start" type="button">Probar oleada</button>
+            <button id="practice-energy" type="button">+100 energia</button>
+            <button id="practice-damage" type="button">Dañar nucleo</button>
+            <button id="practice-clear" type="button">Limpiar enemigos</button>
+            <button id="practice-unlock" type="button">Desbloquear torres</button>
           </div>
           <p class="hint">Activa modo práctica antes de usar el editor.</p>
         </section>
@@ -158,7 +162,12 @@
         </section>
 
         <section class="attention-list">
-          <h2>12. Ayuda y privacidad</h2>
+          <h2>12. Estado de la app</h2>
+          <div id="app-status" class="strategy-panel"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>13. Ayuda y privacidad</h2>
           <details>
             <summary>Ayuda rapida</summary>
             <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza. <a href="./help.html">Abrir ayuda completa</a>.</p>
@@ -170,7 +179,7 @@
         </section>
 
         <section class="attention-list">
-          <h2>13. Bucle de atencion</h2>
+          <h2>14. Bucle de atencion</h2>
           <ol>
             <li>Plan breve antes de la oleada.</li>
             <li>Feedback visual inmediato al disparar.</li>
