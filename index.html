@@ -9,16 +9,17 @@
     <link rel="stylesheet" href="./src/styles.css">
   </head>
   <body>
-    <section id="start-panel" class="start-panel">
+    <section id="start-panel" class="start-panel" role="dialog" aria-modal="true" aria-labelledby="start-title">
       <div class="start-card">
         <p class="eyebrow">Simulacion PC defensiva</p>
-        <h1>Defiende el Nucleo PC</h1>
+        <h1 id="start-title">Defiende el Nucleo PC</h1>
         <p>Elige mapa, combina defensas y protege el CPU de oleadas de malware con sesiones cortas y progreso local.</p>
         <div class="tutorial-actions">
           <button id="start-tutorial" type="button">Ver tutorial</button>
           <button id="start-progress" type="button">Ver progreso</button>
           <button id="start-play" class="primary" type="button">Jugar</button>
         </div>
+        <p class="hint"><a href="./help.html">Ayuda</a> · <a href="./privacy.html">Privacidad</a></p>
       </div>
     </section>
 
@@ -62,7 +63,7 @@
         <canvas id="game-canvas" aria-label="Mapa del juego" role="img"></canvas>
 
         <div class="message-row">
-          <p id="message">Protege el nucleo: coloca defensas antes de iniciar la oleada.</p>
+          <p id="message" aria-live="polite">Protege el nucleo: coloca defensas antes de iniciar la oleada.</p>
           <div class="actions">
             <button id="start-wave" class="primary" type="button">Iniciar oleada</button>
             <button id="pause-toggle" type="button">Pausar</button>
@@ -74,6 +75,7 @@
             <button id="contrast-toggle" type="button">Contraste</button>
             <button id="motion-toggle" type="button">Movimiento</button>
             <button id="text-toggle" type="button">Texto</button>
+            <button id="practice-toggle" type="button">Práctica</button>
           </div>
         </div>
       </section>
@@ -124,6 +126,7 @@
           <div class="utility-actions">
             <button id="export-progress" type="button">Exportar progreso</button>
             <button id="import-progress" type="button">Importar progreso</button>
+            <button id="reset-progress" type="button">Resetear progreso</button>
           </div>
         </section>
 
@@ -131,11 +134,11 @@
           <h2>8. Ayuda y privacidad</h2>
           <details>
             <summary>Ayuda rapida</summary>
-            <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza.</p>
+            <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza. <a href="./help.html">Abrir ayuda completa</a>.</p>
           </details>
           <details>
             <summary>Privacidad</summary>
-            <p class="hint">El progreso se guarda solo en este navegador con localStorage. No hay servidor ni datos personales.</p>
+            <p class="hint">El progreso se guarda solo en este navegador con localStorage. No hay servidor ni datos personales. <a href="./privacy.html">Leer privacidad</a>.</p>
           </details>
         </section>
 
@@ -150,19 +153,20 @@
       </aside>
     </main>
 
-    <section id="reward-panel" class="reward-panel" hidden>
+    <section id="reward-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="reward-title" hidden>
       <div class="reward-dialog">
         <p class="eyebrow">Micro-recompensa</p>
-        <h2>Elige una mejora para seguir en flow</h2>
+        <h2 id="reward-title">Elige una mejora para seguir en flow</h2>
         <div id="reward-cards" class="reward-cards"></div>
       </div>
     </section>
 
-    <section id="game-over-panel" class="reward-panel" hidden>
+    <section id="game-over-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="game-over-title" hidden>
       <div class="reward-dialog">
         <p class="eyebrow">Fin de simulacion</p>
-        <h2>El nucleo necesita otra estrategia</h2>
+        <h2 id="game-over-title">El nucleo necesita otra estrategia</h2>
         <div id="game-over-summary" class="game-over-summary"></div>
+        <div id="loss-analysis" class="strategy-panel"></div>
         <div class="tutorial-actions">
           <button id="game-over-close" type="button">Revisar mapa</button>
           <button id="game-over-retry" class="primary" type="button">Reintentar</button>
@@ -170,7 +174,7 @@
       </div>
     </section>
 
-    <section id="tutorial-panel" class="reward-panel" hidden>
+    <section id="tutorial-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" hidden>
       <div class="reward-dialog tutorial-dialog">
         <p class="eyebrow">Tutorial rapido</p>
         <h2 id="tutorial-title">Protege el nucleo</h2>

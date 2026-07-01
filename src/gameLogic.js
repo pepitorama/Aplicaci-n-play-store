@@ -1,4 +1,6 @@
 import { DEFAULT_MAP_ID, MAPS, getMapDefinition } from "./maps.js";
+import { DIFFICULTY_PRESETS } from "./config/difficulty.js";
+import { getBalanceCurve } from "./config/balance.js";
 
 export const GRID = {
   cols: 14,
@@ -6,41 +8,7 @@ export const GRID = {
   cellSize: 52
 };
 
-export const DIFFICULTY_PRESETS = {
-  easy: {
-    id: "easy",
-    name: "Facil",
-    startingMoney: 160,
-    startingLives: 24,
-    enemyHealth: 0.86,
-    enemySpeed: 0.92,
-    waveSize: 0.86,
-    reward: 1.14,
-    score: 0.9
-  },
-  normal: {
-    id: "normal",
-    name: "Normal",
-    startingMoney: 130,
-    startingLives: 20,
-    enemyHealth: 1,
-    enemySpeed: 1,
-    waveSize: 1,
-    reward: 1,
-    score: 1
-  },
-  hard: {
-    id: "hard",
-    name: "Dificil",
-    startingMoney: 110,
-    startingLives: 16,
-    enemyHealth: 1.18,
-    enemySpeed: 1.08,
-    waveSize: 1.14,
-    reward: 1.08,
-    score: 1.2
-  }
-};
+export { DIFFICULTY_PRESETS };
 
 export const TARGET_MODES = {
   first: {
@@ -465,6 +433,7 @@ export function createGameState(options = {}) {
     lastWaveLeaks: 0,
     totalKills: 0,
     killsByType: {},
+    leakedByType: {},
     towersPlacedByType: {},
     towersSold: 0,
     targetModesUsed: [],
@@ -732,7 +701,8 @@ function spawnEnemies(state, deltaSeconds) {
     const type = ENEMY_TYPES[next.typeId];
     const difficulty = getDifficultyPreset(state.difficultyId);
     const map = getMapDefinition(state.mapId);
-    const healthScale = (1 + (state.wave - 1) * 0.16) * difficulty.enemyHealth;
+    const curve = getBalanceCurve(state.mapId);
+    const healthScale = (1 + (state.wave - 1) * curve.enemyHealthPerWave) * difficulty.enemyHealth;
     const enemy = {
       id: state.nextEnemyId,
       typeId: next.typeId,
@@ -743,7 +713,7 @@ function spawnEnemies(state, deltaSeconds) {
         difficulty.enemySpeed *
         (map.modifiers?.enemySpeed || 1) *
         (state.systemEvent?.enemySpeed || 1) *
-        (1 + Math.min(0.22, state.wave * 0.018)),
+        (1 + Math.min(curve.enemySpeedCap, state.wave * curve.enemySpeedPerWave)),
       reward: Math.round(
         type.reward *
           difficulty.reward *
@@ -778,6 +748,7 @@ function updateEnemies(state, deltaSeconds) {
     if (enemy.progress >= pathLength(state.path || PATH) && !enemy.leaked) {
       enemy.leaked = true;
       state.lives -= ENEMY_TYPES[enemy.typeId].leakDamage || 1;
+      state.leakedByType[enemy.typeId] = (state.leakedByType[enemy.typeId] || 0) + 1;
       applyResourceDamage(state, ENEMY_TYPES[enemy.typeId].resourceDamage || {});
       state.lastWaveLeaks += 1;
       state.waveResolved += 1;

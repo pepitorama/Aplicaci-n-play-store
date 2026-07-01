@@ -1,6 +1,9 @@
+const PROFILE_VERSION = 2;
 const STORAGE_KEY = "defiende-nucleo-pc-profile-v1";
+const BACKUP_KEY = "defiende-nucleo-pc-profile-backup-v1";
 
 export const DEFAULT_PROFILE = {
+  version: PROFILE_VERSION,
   bestScore: 0,
   maxWave: 0,
   totalRuns: 0,
@@ -23,7 +26,15 @@ export const DEFAULT_PROFILE = {
   totalKills: 0,
   researchPoints: 0,
   researchUpgrades: {},
-  completedCampaignSteps: []
+  completedCampaignSteps: [],
+  practiceMode: false,
+  balanceMetrics: {
+    lossesByMap: {},
+    totalLosses: 0,
+    leakedByEnemy: {},
+    lowestResource: null,
+    towersUsed: {}
+  }
 };
 
 export function loadProfile() {
@@ -36,10 +47,7 @@ export function loadProfile() {
     if (!stored) {
       return { ...DEFAULT_PROFILE };
     }
-    return {
-      ...DEFAULT_PROFILE,
-      ...JSON.parse(stored)
-    };
+    return migrateProfile(JSON.parse(stored));
   } catch {
     return { ...DEFAULT_PROFILE };
   }
@@ -50,8 +58,22 @@ export function saveProfile(profile) {
     return false;
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_PROFILE, ...profile }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(migrateProfile(profile)));
   return true;
+}
+
+export function backupProfile(profile) {
+  if (!isStorageAvailable()) {
+    return false;
+  }
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(migrateProfile(profile)));
+  return true;
+}
+
+export function resetProfile() {
+  const nextProfile = { ...DEFAULT_PROFILE };
+  saveProfile(nextProfile);
+  return nextProfile;
 }
 
 export function markTutorialSeen(profile) {
@@ -99,6 +121,32 @@ export function updateProfileFromState(profile, state) {
   return nextProfile;
 }
 
+export function updateBalanceMetrics(profile, state) {
+  const lowestResource = getLowestResource(state.resources || {});
+  const leakedByEnemy = mergeCounts(profile.balanceMetrics?.leakedByEnemy || {}, state.leakedByType || {});
+  const towersUsed = mergeCounts(profile.balanceMetrics?.towersUsed || {}, state.towersPlacedByType || {});
+  const lossesByMap = { ...(profile.balanceMetrics?.lossesByMap || {}) };
+  const lost = state.lives <= 0;
+  const shouldRecordLoss = lost && !state.balanceMetricsRecorded;
+  if (shouldRecordLoss) {
+    lossesByMap[state.mapId] = (lossesByMap[state.mapId] || 0) + 1;
+    state.balanceMetricsRecorded = true;
+  }
+
+  const nextProfile = {
+    ...profile,
+    balanceMetrics: {
+      lossesByMap,
+      totalLosses: (profile.balanceMetrics?.totalLosses || 0) + (shouldRecordLoss ? 1 : 0),
+      leakedByEnemy,
+      lowestResource,
+      towersUsed
+    }
+  };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
 export function recordNewRun(profile, difficultyId, mapId = profile.mapId) {
   const previousMapStats = profile.perMapStats?.[mapId] || {};
   const nextProfile = {
@@ -114,6 +162,12 @@ export function recordNewRun(profile, difficultyId, mapId = profile.mapId) {
       }
     }
   };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function setPracticeMode(profile, practiceMode) {
+  const nextProfile = { ...profile, practiceMode };
   saveProfile(nextProfile);
   return nextProfile;
 }
@@ -191,15 +245,67 @@ export function exportProfile(profile) {
 
 export function importProfile(serializedProfile) {
   const parsed = JSON.parse(serializedProfile);
-  return {
-    ...DEFAULT_PROFILE,
+  if (!isPlainObject(parsed)) {
+    throw new Error("Invalid profile payload");
+  }
+  const profile = migrateProfile({
     ...parsed,
     importedAt: new Date().toISOString()
-  };
+  });
+  if (!validateProfile(profile)) {
+    throw new Error("Invalid profile shape");
+  }
+  return profile;
+}
+
+export function validateProfile(profile) {
+  return (
+    isPlainObject(profile) &&
+    typeof profile.bestScore === "number" &&
+    typeof profile.maxWave === "number" &&
+    Array.isArray(profile.unlockedTowerTypes) &&
+    isPlainObject(profile.researchUpgrades)
+  );
 }
 
 function isStorageAvailable() {
   return typeof localStorage !== "undefined";
+}
+
+function migrateProfile(profile) {
+  const nextProfile = {
+    ...DEFAULT_PROFILE,
+    ...(isPlainObject(profile) ? profile : {}),
+    version: PROFILE_VERSION
+  };
+  if (!Array.isArray(nextProfile.unlockedTowerTypes)) {
+    nextProfile.unlockedTowerTypes = [...DEFAULT_PROFILE.unlockedTowerTypes];
+  }
+  if (!Array.isArray(nextProfile.achievements)) {
+    nextProfile.achievements = [];
+  }
+  if (!Array.isArray(nextProfile.completedMissions)) {
+    nextProfile.completedMissions = [];
+  }
+  if (!isPlainObject(nextProfile.researchUpgrades)) {
+    nextProfile.researchUpgrades = {};
+  }
+  if (!isPlainObject(nextProfile.balanceMetrics)) {
+    nextProfile.balanceMetrics = { ...DEFAULT_PROFILE.balanceMetrics };
+  }
+  return nextProfile;
+}
+
+function isPlainObject(value) {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function getLowestResource(resources) {
+  const entries = Object.entries(resources);
+  if (entries.length === 0) {
+    return null;
+  }
+  return entries.reduce((lowest, current) => (current[1] < lowest[1] ? current : lowest))[0];
 }
 
 function mergeCounts(left, right) {

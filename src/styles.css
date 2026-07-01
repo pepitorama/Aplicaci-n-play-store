@@ -556,7 +556,7 @@ kbd {
 
 .utility-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-top: 10px;
 }
@@ -623,5 +623,9 @@ kbd {
 
   .actions {
     flex-direction: column;
+  }
+
+  .utility-actions {
+    grid-template-columns: 1fr;
   }
 }

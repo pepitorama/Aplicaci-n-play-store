@@ -46,6 +46,19 @@
           "type": "image/svg+xml"
         }
       ]
+    },
+    {
+      "name": "Ayuda",
+      "short_name": "Ayuda",
+      "description": "Ver instrucciones de juego.",
+      "url": "./help.html",
+      "icons": [
+        {
+          "src": "./assets/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ]
 }

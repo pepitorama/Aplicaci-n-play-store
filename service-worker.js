@@ -1,11 +1,15 @@
-const CACHE_NAME = "defiende-nucleo-pc-v5";
+const CACHE_NAME = "defiende-nucleo-pc-v6";
 const ASSETS = [
   "./",
   "./index.html",
+  "./help.html",
+  "./privacy.html",
   "./manifest.webmanifest",
   "./src/styles.css",
   "./src/main.js",
   "./src/audio.js",
+  "./src/config/difficulty.js",
+  "./src/config/balance.js",
   "./src/gameLogic.js",
   "./src/maps.js",
   "./src/campaign.js",

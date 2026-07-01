@@ -30,9 +30,12 @@ import {
   exportProfile,
   importProfile,
   recordNewRun,
+  resetProfile,
+  setPracticeMode,
   setHighContrast,
   setLargeText,
   setReducedMotion,
+  updateBalanceMetrics,
   updateProfileFromState
 } from "../src/storage.js";
 import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "../src/progression.js";
@@ -356,4 +359,41 @@ test("system events activate on scheduled waves", () => {
 
   startNextWave(state);
   assert.equal(state.systemEvent.id, SYSTEM_EVENTS.trafficSpike.id);
+});
+
+test("invalid profile imports are rejected", () => {
+  assert.throws(() => importProfile("[]"));
+  assert.throws(() => importProfile("{bad json"));
+  assert.throws(() => importProfile(JSON.stringify({ bestScore: "bad" })));
+});
+
+test("research purchase is blocked without enough points", () => {
+  const profile = { researchPoints: 0, researchUpgrades: {} };
+  const nextProfile = buyResearchUpgrade(profile, "globalDamage", 99, RESEARCH_UPGRADES.globalDamage.maxLevel);
+
+  assert.equal(nextProfile, profile);
+});
+
+test("practice mode and reset profile keep safe defaults", () => {
+  const profile = setPracticeMode({ practiceMode: false }, true);
+  const reset = resetProfile();
+
+  assert.equal(profile.practiceMode, true);
+  assert.equal(reset.bestScore, 0);
+  assert.deepEqual(reset.unlockedTowerTypes, ["packet", "firewall", "freezer"]);
+});
+
+test("balance metrics record losses, leaks and tower usage", () => {
+  const state = createGameState({ mapId: "hardLine" });
+  state.lives = 0;
+  state.leakedByType.exploit = 2;
+  state.towersPlacedByType.firewall = 3;
+  state.resources.cpu = 12;
+  const profile = updateBalanceMetrics({ balanceMetrics: {} }, state);
+
+  assert.equal(profile.balanceMetrics.totalLosses, 1);
+  assert.equal(profile.balanceMetrics.lossesByMap.hardLine, 1);
+  assert.equal(profile.balanceMetrics.leakedByEnemy.exploit, 2);
+  assert.equal(profile.balanceMetrics.towersUsed.firewall, 3);
+  assert.equal(profile.balanceMetrics.lowestResource, "cpu");
 });

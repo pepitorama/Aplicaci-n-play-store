@@ -55,6 +55,10 @@ Fuentes consultadas:
 - Recursos de PC simulados: CPU, RAM, Disco y Red.
 - Eventos de sistema: pico de trafico, actualizacion critica y escaneo de disco.
 - Investigacion permanente con puntos ganados por partida.
+- Modo practica sin afectar records, campana ni estadisticas.
+- Guardado robusto con version de perfil, validacion de importacion, backup y reset de progreso.
+- Panel de fin de partida "por que perdiste" con amenaza filtrada, recurso bajo y derrotas por mapa.
+- Metricas locales de balance sin servidor: fugas por enemigo, torres usadas, derrotas por mapa y recurso mas bajo.
 - Selector de mapas con modificadores de recompensa, velocidad, oleadas y energia:
   - Nucleo clasico
   - Circuito largo
@@ -98,12 +102,14 @@ Fuentes consultadas:
 - Feedback visual de rango, impactos, derrotas y alertas del nucleo.
 - PWA con manifest, icono y service worker offline.
 - Manifest PWA con screenshots placeholder y acceso directo "Jugar" para preparacion Play Store/TWA.
+- Paginas `help.html` y `privacy.html` cacheadas offline.
 
 ## Estructura
 
 ```text
 src/
   audio.js       Sonidos sinteticos y mute.
+  config/        Configuracion de dificultad y curvas de balance.
   gameLogic.js   Motor: oleadas, torres, enemigos, economia y dificultad.
   main.js        Coordinador entre UI, motor, render, audio y persistencia.
   maps.js        Definiciones de mapas y rutas.
@@ -148,6 +154,8 @@ npm test
 - Boton contraste: activa/desactiva alto contraste.
 - Boton movimiento: reduce animaciones.
 - Boton texto: aumenta tamano de texto.
+- Boton practica: activa/desactiva modo sin records.
+- Boton resetear progreso: crea backup local y reinicia perfil.
 
 ## Siguientes pasos recomendados
 

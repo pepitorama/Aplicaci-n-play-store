@@ -41,12 +41,14 @@ export function createUi(elements, callbacks) {
   elements.contrastToggle.addEventListener("click", callbacks.onToggleContrast);
   elements.motionToggle.addEventListener("click", callbacks.onToggleReducedMotion);
   elements.textToggle.addEventListener("click", callbacks.onToggleLargeText);
+  elements.practiceToggle.addEventListener("click", callbacks.onTogglePractice);
   elements.pauseToggle.addEventListener("click", callbacks.onTogglePause);
   elements.speedToggle.addEventListener("click", callbacks.onToggleSpeed);
   elements.targetToggle.addEventListener("click", callbacks.onTargetMode);
   elements.sellTower.addEventListener("click", callbacks.onSellTower);
   elements.exportProgress.addEventListener("click", callbacks.onExportProgress);
   elements.importProgress.addEventListener("click", callbacks.onImportProgress);
+  elements.resetProgress.addEventListener("click", callbacks.onResetProgress);
   elements.gameOverRetry.addEventListener("click", callbacks.onGameOverRetry);
   elements.gameOverClose.addEventListener("click", () => {
     elements.gameOverPanel.hidden = true;
@@ -163,6 +165,7 @@ export function collectUiElements() {
     contrastToggle: document.querySelector("#contrast-toggle"),
     motionToggle: document.querySelector("#motion-toggle"),
     textToggle: document.querySelector("#text-toggle"),
+    practiceToggle: document.querySelector("#practice-toggle"),
     rewardPanel: document.querySelector("#reward-panel"),
     rewardCards: document.querySelector("#reward-cards"),
     selectedInfo: document.querySelector("#selected-info"),
@@ -174,8 +177,10 @@ export function collectUiElements() {
     strategyPanel: document.querySelector("#strategy-panel"),
     exportProgress: document.querySelector("#export-progress"),
     importProgress: document.querySelector("#import-progress"),
+    resetProgress: document.querySelector("#reset-progress"),
     gameOverPanel: document.querySelector("#game-over-panel"),
     gameOverSummary: document.querySelector("#game-over-summary"),
+    lossAnalysis: document.querySelector("#loss-analysis"),
     gameOverRetry: document.querySelector("#game-over-retry"),
     gameOverClose: document.querySelector("#game-over-close"),
     waveProgressBar: document.querySelector("#wave-progress-bar"),
@@ -202,6 +207,7 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.contrastToggle.textContent = profile.highContrast ? "Contraste: Alto" : "Contraste";
   elements.motionToggle.textContent = profile.reducedMotion ? "Movimiento: Bajo" : "Movimiento";
   elements.textToggle.textContent = profile.largeText ? "Texto: Grande" : "Texto";
+  elements.practiceToggle.textContent = profile.practiceMode ? "Práctica: ON" : "Práctica";
   elements.pauseToggle.textContent = session.isPaused ? "Continuar" : "Pausar";
   elements.pauseToggle.disabled = state.lives <= 0;
   elements.speedToggle.textContent = `Velocidad x${session.speedMultiplier || 1}`;
@@ -428,6 +434,23 @@ function renderGameOver(elements, state, profile) {
     <div><span>Oleada alcanzada</span><strong>${state.maxWaveReached}</strong></div>
     <div><span>Enemigos derrotados</span><strong>${state.totalKills}</strong></div>
     <div><span>Record guardado</span><strong>${Math.max(profile.bestScore || 0, state.score || 0)}</strong></div>
+  `;
+  elements.lossAnalysis.innerHTML = lossAnalysisHtml(state, profile);
+}
+
+function lossAnalysisHtml(state, profile) {
+  const leaked = Object.entries(state.leakedByType || {}).sort((a, b) => b[1] - a[1]);
+  const topLeak = leaked[0];
+  const lowestResource = Object.entries(state.resources || {}).sort((a, b) => a[1] - b[1])[0];
+  const mapLosses = profile.balanceMetrics?.lossesByMap?.[state.mapId] || 0;
+  const advice = topLeak
+    ? `La amenaza que mas se filtro fue ${ENEMY_TYPES[topLeak[0]]?.name || topLeak[0]}. Ajusta prioridad y control de velocidad.`
+    : "No hubo fugas registradas; revisa recursos criticos y economia.";
+
+  return `
+    <p><strong>Por que perdiste:</strong> ${advice}</p>
+    <p><strong>Recurso mas bajo:</strong> ${lowestResource ? `${lowestResource[0].toUpperCase()} (${Math.round(lowestResource[1])})` : "Sin datos"}</p>
+    <p><strong>Derrotas en este mapa:</strong> ${mapLosses}</p>
   `;
 }
 

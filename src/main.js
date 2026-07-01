@@ -22,6 +22,7 @@ import { createRenderer } from "./renderer.js";
 import { collectUiElements, createUi } from "./ui.js";
 import {
   awardResearch,
+  backupProfile,
   buyResearchUpgrade,
   exportProfile,
   importProfile,
@@ -33,7 +34,10 @@ import {
   setLargeText,
   setMuted,
   setPreferredMap,
+  setPracticeMode,
   setReducedMotion,
+  resetProfile,
+  updateBalanceMetrics,
   updateProfileFromState
 } from "./storage.js";
 import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "./progression.js";
@@ -69,6 +73,8 @@ const ui = createUi(elements, {
   onToggleContrast: () => toggleContrast(),
   onToggleReducedMotion: () => toggleReducedMotion(),
   onToggleLargeText: () => toggleLargeText(),
+  onTogglePractice: () => togglePractice(),
+  onResetProgress: () => resetProgress(),
   onDifficulty: (difficultyId) => chooseDifficulty(difficultyId),
   onTowerSelect: (towerId) => selectTower(towerId),
   onReward: (rewardId) => chooseReward(rewardId),
@@ -179,7 +185,9 @@ function loop(timestamp) {
 
   if (state.lives <= 0 && !gameOverShown) {
     profile = syncProfileFromState();
-    profile = awardResearch(profile, state);
+    if (!profile.practiceMode) {
+      profile = awardResearch(profile, state);
+    }
     ui.showGameOver(state, profile);
     gameOverShown = true;
   }
@@ -193,7 +201,9 @@ function startWaveFromInput() {
   sound.resume();
   ui.hideRewards();
   if (!runRecorded && state.wave === 0) {
-    profile = recordNewRun(profile, state.difficultyId, state.mapId);
+    if (!profile.practiceMode) {
+      profile = recordNewRun(profile, state.difficultyId, state.mapId);
+    }
     runRecorded = true;
   }
   startNextWave(state);
@@ -202,7 +212,9 @@ function startWaveFromInput() {
 }
 
 function restartGame() {
-  profile = syncProfileFromState();
+  if (!profile.practiceMode) {
+    profile = syncProfileFromState();
+  }
   state = createStateFromProfile();
   selectedTowerId = null;
   rewardPendingForWave = 0;
@@ -290,6 +302,32 @@ function toggleReducedMotion() {
 function toggleLargeText() {
   profile = setLargeText(profile, !profile.largeText);
   applyAccessibilityPreferences();
+  renderUi();
+}
+
+function togglePractice() {
+  if (state.wave > 0 || state.towers.length > 0 || state.activeWave) {
+    state.message = "Cambia modo practica antes de iniciar o reinicia la simulacion.";
+    renderUi();
+    return;
+  }
+  profile = setPracticeMode(profile, !profile.practiceMode);
+  state.message = profile.practiceMode ? "Modo practica activo: no afecta records ni campana." : "Modo practica desactivado.";
+  renderUi();
+}
+
+function resetProgress() {
+  if (!window.confirm("Esto reinicia progreso local. Se creara un backup antes de resetear. Continuar?")) {
+    return;
+  }
+  backupProfile(profile);
+  profile = resetProfile();
+  state = createStateFromProfile();
+  selectedTowerId = null;
+  rewardPendingForWave = 0;
+  gameOverShown = false;
+  applyAccessibilityPreferences();
+  state.message = "Progreso reiniciado. Backup local creado.";
   renderUi();
 }
 
@@ -451,6 +489,9 @@ function applyAccessibilityPreferences() {
 }
 
 function syncProfileFromState() {
+  if (profile.practiceMode) {
+    return profile;
+  }
   let nextProfile = updateProfileFromState(profile, state);
   const achievementResult = evaluateAchievements(nextProfile, state);
   const missionResult = evaluateMissions(nextProfile, state);
@@ -461,6 +502,7 @@ function syncProfileFromState() {
     completedMissions: missionResult.completedMissions,
     completedCampaignSteps: campaignResult.completedCampaignSteps
   };
+  nextProfile = updateBalanceMetrics(nextProfile, state);
   saveProfile(nextProfile);
   return nextProfile;
 }
@@ -484,6 +526,10 @@ function importProgressFromPrompt() {
   }
 
   try {
+    if (!window.confirm("Importar sobrescribira el progreso actual. Se creara un backup antes de continuar.")) {
+      return;
+    }
+    backupProfile(profile);
     profile = importProfile(serialized);
     saveProfile(profile);
     state = createStateFromProfile();
