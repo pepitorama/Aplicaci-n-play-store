@@ -1,0 +1,190 @@
+export const ACHIEVEMENTS = {
+  firstDefense: {
+    id: "firstDefense",
+    title: "Primer despliegue",
+    description: "Coloca tu primera defensa.",
+    isComplete: (state) => state.towers.length > 0 || totalPlaced(state) > 0
+  },
+  perfectWave: {
+    id: "perfectWave",
+    title: "Oleada limpia",
+    description: "Completa una oleada sin fugas.",
+    isComplete: (state) => state.perfectWaves > 0
+  },
+  malwareHunter: {
+    id: "malwareHunter",
+    title: "Cazador de malware",
+    description: "Derrota 100 amenazas en total.",
+    isComplete: (state, profile) => Math.max(state.totalKills || 0, profile.totalKills || 0) >= 100
+  },
+  sentinelUnlocked: {
+    id: "sentinelUnlocked",
+    title: "IA activada",
+    description: "Desbloquea la IA Centinela.",
+    isComplete: (state, profile) =>
+      (state.unlockedTowerTypes || []).includes("tesla") || (profile.unlockedTowerTypes || []).includes("tesla")
+  },
+  mapExplorer: {
+    id: "mapExplorer",
+    title: "Explorador de mapas",
+    description: "Juega en al menos 3 mapas distintos.",
+    isComplete: (state, profile) => new Set([...(profile.mapsPlayed || []), state.mapId].filter(Boolean)).size >= 3
+  },
+  hardModeScout: {
+    id: "hardModeScout",
+    title: "Modo dificil",
+    description: "Inicia una partida en dificultad dificil.",
+    isComplete: (state, profile) => state.difficultyId === "hard" || profile.difficultyId === "hard"
+  },
+  priorityOperator: {
+    id: "priorityOperator",
+    title: "Operador de prioridades",
+    description: "Usa al menos 3 prioridades de objetivo.",
+    isComplete: (state) => new Set(state.targetModesUsed || []).size >= 3
+  }
+};
+
+export const MISSIONS = {
+  surviveFive: {
+    id: "surviveFive",
+    title: "Sobrevive 5 oleadas",
+    description: "Alcanza la oleada 5 en cualquier mapa.",
+    getProgress: (state) => Math.min(5, state.maxWaveReached || state.wave || 0),
+    target: 5
+  },
+  sandboxControl: {
+    id: "sandboxControl",
+    title: "Control con Sandbox",
+    description: "Coloca 3 Sandboxes en una partida.",
+    getProgress: (state) => Math.min(3, state.towersPlacedByType?.freezer || 0),
+    target: 3
+  },
+  spywareSweep: {
+    id: "spywareSweep",
+    title: "Limpia Spyware",
+    description: "Derrota 20 Spyware.",
+    getProgress: (state, profile) => Math.min(20, (state.killsByType?.spyware || 0) + (profile.killsByType?.spyware || 0)),
+    target: 20
+  },
+  perfectFocus: {
+    id: "perfectFocus",
+    title: "Foco perfecto",
+    description: "Completa 2 oleadas perfectas.",
+    getProgress: (state) => Math.min(2, state.perfectWaves || 0),
+    target: 2
+  },
+  sellRecycle: {
+    id: "sellRecycle",
+    title: "Reciclaje tactico",
+    description: "Vende 5 torres para reposicionar tu economia.",
+    getProgress: (state) => Math.min(5, state.towersSold || 0),
+    target: 5
+  },
+  mapTour: {
+    id: "mapTour",
+    title: "Ruta multiple",
+    description: "Juega en 4 mapas distintos.",
+    getProgress: (state, profile) => Math.min(4, new Set([...(profile.mapsPlayed || []), state.mapId].filter(Boolean)).size),
+    target: 4
+  }
+};
+
+export const RESEARCH_UPGRADES = {
+  energyCache: {
+    id: "energyCache",
+    title: "Cache energetica",
+    description: "+10 energia inicial por nivel.",
+    maxLevel: 5,
+    cost: 2
+  },
+  coreIntegrity: {
+    id: "coreIntegrity",
+    title: "Integridad reforzada",
+    description: "+1 integridad inicial por nivel.",
+    maxLevel: 5,
+    cost: 2
+  },
+  analyzerBoost: {
+    id: "analyzerBoost",
+    title: "Firmas del Analizador",
+    description: "+5% dano del Analizador por nivel.",
+    maxLevel: 4,
+    cost: 3
+  },
+  globalDamage: {
+    id: "globalDamage",
+    title: "Optimizacion global",
+    description: "+3% dano global por nivel.",
+    maxLevel: 5,
+    cost: 4
+  },
+  perfectBonus: {
+    id: "perfectBonus",
+    title: "Protocolo perfecto",
+    description: "+5 energia en oleadas perfectas por nivel.",
+    maxLevel: 4,
+    cost: 3
+  },
+  resourceHardening: {
+    id: "resourceHardening",
+    title: "Blindaje de recursos",
+    description: "+5 a CPU/RAM/Disco/Red por nivel.",
+    maxLevel: 5,
+    cost: 3
+  }
+};
+
+export function evaluateAchievements(profile, state) {
+  const completed = new Set(profile.achievements || []);
+  const newlyCompleted = [];
+
+  Object.values(ACHIEVEMENTS).forEach((achievement) => {
+    if (!completed.has(achievement.id) && achievement.isComplete(state, profile)) {
+      completed.add(achievement.id);
+      newlyCompleted.push(achievement.id);
+    }
+  });
+
+  return {
+    achievements: Array.from(completed),
+    newlyCompleted
+  };
+}
+
+export function evaluateMissions(profile, state) {
+  const completed = new Set(profile.completedMissions || []);
+  const missionStates = Object.values(MISSIONS).map((mission) => {
+    const progress = mission.getProgress(state, profile);
+    const complete = progress >= mission.target;
+    if (complete) {
+      completed.add(mission.id);
+    }
+    return {
+      ...mission,
+      progress,
+      complete
+    };
+  });
+
+  return {
+    completedMissions: Array.from(completed),
+    missionStates
+  };
+}
+
+export function getProfileSummary(profile) {
+  return {
+    achievements: profile.achievements?.length || 0,
+    missions: profile.completedMissions?.length || 0,
+    maps: profile.mapsPlayed?.length || 0
+  };
+}
+
+export function getResearchUpgradeCost(upgradeId, currentLevel = 0) {
+  const upgrade = RESEARCH_UPGRADES[upgradeId];
+  return upgrade ? upgrade.cost + currentLevel : Infinity;
+}
+
+function totalPlaced(state) {
+  return Object.values(state.towersPlacedByType || {}).reduce((total, count) => total + count, 0);
+}

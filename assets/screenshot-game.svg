@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title">
+  <title id="title">Tablero de juego Defiende el Nucleo PC</title>
+  <rect width="1280" height="720" fill="#060b15"/>
+  <rect x="44" y="46" width="770" height="610" rx="28" fill="#0d172a" stroke="#4dffca" stroke-width="3"/>
+  <rect x="850" y="46" width="386" height="610" rx="28" fill="#0d172a" stroke="#ffffff" stroke-opacity=".12" stroke-width="3"/>
+  <path d="M90 370H260V230H430V510H610V310H760" fill="none" stroke="#4dffca" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" opacity=".28"/>
+  <path d="M90 370H260V230H430V510H610V310H760" fill="none" stroke="#4dffca" stroke-width="6" stroke-dasharray="18 16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="300" r="28" fill="#40d9ff"/>
+  <circle cx="360" cy="340" r="28" fill="#ffb84a"/>
+  <circle cx="540" cy="430" r="28" fill="#9f7cff"/>
+  <circle cx="700" cy="310" r="30" fill="#4dffca"/>
+  <circle cx="300" cy="230" r="18" fill="#ff5d73"/>
+  <circle cx="500" cy="510" r="18" fill="#e0ff5f"/>
+  <circle cx="660" cy="310" r="22" fill="#ff4fd8"/>
+  <text x="1043" y="110" text-anchor="middle" fill="#eff7ff" font-family="Arial" font-size="34" font-weight="900">Panel estrategico</text>
+  <text x="890" y="180" fill="#4dffca" font-family="Arial" font-size="24" font-weight="700">CPU 100  RAM 94</text>
+  <text x="890" y="230" fill="#40d9ff" font-family="Arial" font-size="24" font-weight="700">Campaña y misiones</text>
+  <text x="890" y="280" fill="#ffb84a" font-family="Arial" font-size="24" font-weight="700">Investigacion permanente</text>
+  <text x="890" y="330" fill="#9fb2c8" font-family="Arial" font-size="22">Vista previa, mapa y logros locales</text>
+</svg>

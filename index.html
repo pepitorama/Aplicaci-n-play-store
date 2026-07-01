@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#08101f">
+    <title>Defiende el Nucleo PC</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="./src/styles.css">
+  </head>
+  <body>
+    <section id="start-panel" class="start-panel" role="dialog" aria-modal="true" aria-labelledby="start-title">
+      <div class="start-card">
+        <p class="eyebrow">Simulacion PC defensiva</p>
+        <h1 id="start-title">Defiende el Nucleo PC</h1>
+        <p>Elige mapa, combina defensas y protege el CPU de oleadas de malware con sesiones cortas y progreso local.</p>
+        <div class="tutorial-actions">
+          <button id="start-tutorial" type="button">Ver tutorial</button>
+          <button id="start-progress" type="button">Ver progreso</button>
+          <button id="start-play" class="primary" type="button">Jugar</button>
+        </div>
+        <p class="hint"><a href="./help.html">Ayuda</a> · <a href="./privacy.html">Privacidad</a></p>
+      </div>
+    </section>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Tower defense + simulacion de seguridad en PC</p>
+        <h1>Defiende el Nucleo PC</h1>
+        <p>
+          Instala defensas, analiza la vista previa de cada oleada y evita que el malware llegue al CPU.
+          El prototipo usa reglas inspiradas en juegos tipo "defiende tu torre" y principios de atencion.
+        </p>
+      </div>
+      <aside class="research-card">
+        <strong>Diseno basado en investigacion</strong>
+        <ul>
+          <li>Ruta visible y preview para bajar carga cognitiva.</li>
+          <li>Recompensas cortas para mantener motivacion.</li>
+          <li>Dificultad adaptativa para acercarse al flow.</li>
+        </ul>
+      </aside>
+    </header>
+
+    <main class="app-shell">
+      <section class="game-panel" aria-label="Juego">
+        <div class="hud-grid">
+          <div><span>Energia</span><strong id="money">130</strong></div>
+          <div><span>Integridad</span><strong id="lives">20</strong></div>
+          <div><span>Oleada</span><strong id="wave">0</strong></div>
+          <div><span>Puntos</span><strong id="score">0</strong></div>
+          <div><span>Record</span><strong id="best-score">0</strong></div>
+          <div><span>Max. oleada</span><strong id="max-wave">0</strong></div>
+        </div>
+
+        <div class="wave-progress" aria-label="Progreso de oleada">
+          <span id="wave-progress-label">Oleada en espera</span>
+          <div><span id="wave-progress-bar"></span></div>
+        </div>
+
+        <div id="resource-grid" class="resource-grid" aria-label="Recursos del PC"></div>
+
+        <canvas id="game-canvas" aria-label="Mapa del juego" role="img"></canvas>
+
+        <div class="message-row">
+          <p id="message" aria-live="polite">Protege el nucleo: coloca defensas antes de iniciar la oleada.</p>
+          <div class="actions">
+            <button id="start-wave" class="primary" type="button">Iniciar oleada</button>
+            <button id="pause-toggle" type="button">Pausar</button>
+            <button id="speed-toggle" type="button">Velocidad x1</button>
+            <button id="target-toggle" type="button">Prioridad</button>
+            <button id="sell-tower" type="button">Vender</button>
+            <button id="restart" type="button">Reiniciar</button>
+            <button id="mute-toggle" type="button">Sonido: ON</button>
+            <button id="contrast-toggle" type="button">Contraste</button>
+            <button id="color-toggle" type="button">Color</button>
+            <button id="motion-toggle" type="button">Movimiento</button>
+            <button id="text-toggle" type="button">Texto</button>
+            <button id="practice-toggle" type="button">Práctica</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-panel" aria-label="Controles">
+        <section>
+          <h2>0. Elige dificultad</h2>
+          <div id="difficulty-cards" class="difficulty-cards"></div>
+          <p id="profile-info" class="hint"></p>
+        </section>
+
+        <section>
+          <h2>1. Elige mapa</h2>
+          <div id="map-cards" class="map-cards"></div>
+        </section>
+
+        <section>
+          <h2>2. Campaña</h2>
+          <div id="campaign-list" class="progress-list"></div>
+        </section>
+
+        <section>
+          <h2>3. Desafío diario</h2>
+          <div id="daily-panel" class="strategy-panel"></div>
+          <button id="daily-start" type="button">Iniciar desafío diario</button>
+        </section>
+
+        <section>
+          <h2>4. Análisis del mapa</h2>
+          <div id="map-analysis" class="strategy-panel"></div>
+        </section>
+
+        <section>
+          <h2>5. Estrategia del mapa</h2>
+          <div id="strategy-panel" class="strategy-panel"></div>
+        </section>
+
+        <section>
+          <h2>6. Elige defensa</h2>
+          <div id="tower-cards" class="tower-cards"></div>
+          <p id="selected-info" class="hint"></p>
+        </section>
+
+        <section>
+          <h2>7. Lee la proxima amenaza</h2>
+          <div id="wave-preview" class="preview-list"></div>
+          <p class="hint">Pulsa espacio para iniciar. Usa teclas numericas para defensas, P pausa, F velocidad y T prioridad.</p>
+        </section>
+
+        <section class="attention-list">
+          <h2>8. Editor de práctica</h2>
+          <div class="practice-editor">
+            <label>Oleada <input id="practice-wave" type="number" min="1" max="30" value="5"></label>
+            <label>Enemigo <select id="practice-enemy"></select></label>
+            <button id="practice-start" type="button">Probar oleada</button>
+            <button id="practice-energy" type="button">+100 energia</button>
+            <button id="practice-damage" type="button">Dañar nucleo</button>
+            <button id="practice-clear" type="button">Limpiar enemigos</button>
+            <button id="practice-unlock" type="button">Desbloquear torres</button>
+          </div>
+          <p class="hint">Activa modo práctica antes de usar el editor.</p>
+        </section>
+
+        <section class="attention-list">
+          <h2>9. Sugerencias automáticas</h2>
+          <div id="suggestion-list" class="progress-list"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>10. Investigación permanente</h2>
+          <div id="research-list" class="progress-list"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>11. Misiones y logros</h2>
+          <div id="mission-list" class="progress-list"></div>
+          <div id="achievement-list" class="progress-list"></div>
+          <div class="utility-actions">
+            <button id="export-progress" type="button">Exportar progreso</button>
+            <button id="import-progress" type="button">Importar progreso</button>
+            <button id="reset-progress" type="button">Resetear progreso</button>
+          </div>
+        </section>
+
+        <section class="attention-list">
+          <h2>12. Estado de la app</h2>
+          <div id="app-status" class="strategy-panel"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>13. Ayuda y privacidad</h2>
+          <details>
+            <summary>Ayuda rapida</summary>
+            <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza. <a href="./help.html">Abrir ayuda completa</a>.</p>
+          </details>
+          <details>
+            <summary>Privacidad</summary>
+            <p class="hint">El progreso se guarda solo en este navegador con localStorage. No hay servidor ni datos personales. <a href="./privacy.html">Leer privacidad</a>.</p>
+          </details>
+        </section>
+
+        <section class="attention-list">
+          <h2>14. Bucle de atencion</h2>
+          <ol>
+            <li>Plan breve antes de la oleada.</li>
+            <li>Feedback visual inmediato al disparar.</li>
+            <li>Eleccion de recompensa tras completar la oleada.</li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <section id="reward-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="reward-title" hidden>
+      <div class="reward-dialog">
+        <p class="eyebrow">Micro-recompensa</p>
+        <h2 id="reward-title">Elige una mejora para seguir en flow</h2>
+        <div id="reward-cards" class="reward-cards"></div>
+      </div>
+    </section>
+
+    <section id="game-over-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="game-over-title" hidden>
+      <div class="reward-dialog">
+        <p class="eyebrow">Fin de simulacion</p>
+        <h2 id="game-over-title">El nucleo necesita otra estrategia</h2>
+        <div id="game-over-summary" class="game-over-summary"></div>
+        <div id="loss-analysis" class="strategy-panel"></div>
+        <div class="tutorial-actions">
+          <button id="game-over-close" type="button">Revisar mapa</button>
+          <button id="game-over-retry" class="primary" type="button">Reintentar</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tutorial-panel" class="reward-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" hidden>
+      <div class="reward-dialog tutorial-dialog">
+        <p class="eyebrow">Tutorial rapido</p>
+        <h2 id="tutorial-title">Protege el nucleo</h2>
+        <p id="tutorial-body"></p>
+        <div class="tutorial-actions">
+          <button id="tutorial-skip" type="button">Saltar</button>
+          <button id="tutorial-next" class="primary" type="button">Siguiente</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

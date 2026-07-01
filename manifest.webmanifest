@@ -1,0 +1,64 @@
+{
+  "name": "Defiende el Nucleo PC",
+  "short_name": "Nucleo PC",
+  "description": "Tower defense y simulacion de seguridad para PC, preparado como PWA instalable.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#08101f",
+  "theme_color": "#08101f",
+  "orientation": "landscape",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "education", "simulation"],
+  "screenshots": [
+    {
+      "src": "./assets/screenshot-home.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Pantalla inicial"
+    },
+    {
+      "src": "./assets/screenshot-game.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Tablero de defensa"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Jugar",
+      "short_name": "Jugar",
+      "description": "Abrir el simulador defensivo.",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "./assets/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Ayuda",
+      "short_name": "Ayuda",
+      "description": "Ver instrucciones de juego.",
+      "url": "./help.html",
+      "icons": [
+        {
+          "src": "./assets/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
