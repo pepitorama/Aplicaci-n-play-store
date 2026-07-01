@@ -121,7 +121,7 @@ test("locked towers can be unlocked with blueprint rewards", () => {
 test("tower target mode can cycle and prioritize strong enemies", () => {
   const state = createGameState();
   state.money = 500;
-  assert.equal(placeTower(state, 4, 4, "packet"), true);
+  assert.equal(placeTower(state, 1, 3, "packet"), true);
   const tower = state.towers[0];
 
   assert.equal(tower.targetMode, "first");
@@ -129,7 +129,6 @@ test("tower target mode can cycle and prioritize strong enemies", () => {
   assert.equal(tower.targetMode, "strong");
   assert.equal(TARGET_MODES[tower.targetMode].name, "Fuerte");
 
-  const position = cellToPoint(4, 4);
   state.enemies = [
     {
       id: 1,
@@ -138,12 +137,11 @@ test("tower target mode can cycle and prioritize strong enemies", () => {
       maxHp: 20,
       speed: 80,
       reward: 1,
-      progress: 200,
+      progress: 60,
       slowTimer: 0,
       slowFactor: 1,
       leaked: false,
-      x: position.x + 20,
-      y: position.y
+      ...cellToPoint(1, 4)
     },
     {
       id: 2,
@@ -152,12 +150,11 @@ test("tower target mode can cycle and prioritize strong enemies", () => {
       maxHp: 90,
       speed: 20,
       reward: 1,
-      progress: 20,
+      progress: 90,
       slowTimer: 0,
       slowFactor: 1,
       leaked: false,
-      x: position.x + 30,
-      y: position.y
+      ...cellToPoint(2, 4)
     }
   ];
 
