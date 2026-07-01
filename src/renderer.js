@@ -1,4 +1,4 @@
-import { ENEMY_TYPES, GRID, PATH, TOWER_TYPES, canPlaceTower, cellToPoint } from "./gameLogic.js";
+import { ENEMY_TYPES, GRID, PATH, TARGET_MODES, TOWER_TYPES, canPlaceTower, cellToPoint } from "./gameLogic.js";
 
 export function createRenderer(canvas) {
   const ctx = canvas.getContext("2d");
@@ -115,6 +115,7 @@ function drawTowers(ctx, state, selectedTowerId) {
     ctx.fillText(type.shortName, tower.x, tower.y + 4);
     ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
     ctx.fillText(`L${tower.level}`, tower.x, tower.y + 30);
+    ctx.fillText(TARGET_MODES[tower.targetMode || "first"].name.slice(0, 3).toUpperCase(), tower.x, tower.y - 28);
 
     const target = state.enemies.find((enemy) => enemy.id === tower.targetId);
     if (target && performance.now() - tower.lastShotTime < 110) {

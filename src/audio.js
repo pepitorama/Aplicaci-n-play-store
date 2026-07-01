@@ -8,7 +8,8 @@ const SOUND_MAP = {
   unlock: [920, 0.14, "sine", 0.055],
   "wave-start": [330, 0.08, "triangle", 0.04],
   "wave-complete": [760, 0.16, "sine", 0.05],
-  difficulty: [500, 0.06, "sine", 0.035]
+  difficulty: [500, 0.06, "sine", 0.035],
+  "target-mode": [610, 0.06, "triangle", 0.035]
 };
 
 export class SoundEngine {
@@ -64,7 +65,18 @@ export class SoundEngine {
   }
 
   playEvents(events) {
-    const priority = ["unlock", "reward", "wave-complete", "leak", "defeat", "upgrade", "place", "wave-start", "difficulty"];
+    const priority = [
+      "unlock",
+      "reward",
+      "wave-complete",
+      "leak",
+      "defeat",
+      "target-mode",
+      "upgrade",
+      "place",
+      "wave-start",
+      "difficulty"
+    ];
     const played = new Set();
     for (const eventType of priority) {
       if (events.some((event) => event.type === eventType) && !played.has(eventType)) {

@@ -61,6 +61,8 @@ Fuentes consultadas:
   - **Ransomware:** amenaza lenta y resistente de oleadas superiores.
 - Oleadas con vista previa.
 - Barra de progreso de oleada.
+- Pausa y velocidad de simulacion x1/x2/x3 para probar estrategias en PC.
+- Prioridad de objetivo por torre: primero, fuerte, rapido o debil.
 - Economia por energia, upgrades, puntuacion e integridad del nucleo.
 - Micro-recompensas tras cada oleada.
 - Ajuste de dificultad si la oleada anterior tuvo muchas fugas.
@@ -104,8 +106,12 @@ npm test
 
 - Click en casilla libre: colocar defensa seleccionada.
 - Click en torre existente: mejorar si hay energia.
+- `Shift` + click en torre: cambiar prioridad de objetivo.
 - Teclas `1`, `2`, `3`, `4`: cambiar defensa si esta desbloqueada.
 - `Espacio`: iniciar oleada.
+- `P`: pausar/reanudar.
+- `F`: cambiar velocidad x1/x2/x3.
+- `T`: cambiar prioridad de la torre seleccionada.
 - Boton de sonido: activar/desactivar efectos.
 
 ## Siguientes pasos recomendados

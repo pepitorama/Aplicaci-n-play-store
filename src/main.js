@@ -4,6 +4,7 @@ import {
   applyReward,
   canPlaceTower,
   createGameState,
+  cycleTowerTargetMode,
   drainEvents,
   isPathCell,
   isTowerUnlocked,
@@ -37,6 +38,8 @@ let lastTimestamp = 0;
 let rewardPendingForWave = 0;
 let effects = [];
 let runRecorded = false;
+let isPaused = false;
+let speedMultiplier = 1;
 
 const sound = new SoundEngine({ muted: profile.muted });
 const ui = createUi(elements, {
@@ -46,12 +49,15 @@ const ui = createUi(elements, {
   onDifficulty: (difficultyId) => chooseDifficulty(difficultyId),
   onTowerSelect: (towerId) => selectTower(towerId),
   onReward: (rewardId) => chooseReward(rewardId),
-  onTutorialDone: () => completeTutorial()
+  onTutorialDone: () => completeTutorial(),
+  onTogglePause: () => togglePause(),
+  onToggleSpeed: () => toggleSpeed(),
+  onTargetMode: () => changeSelectedTargetMode()
 });
 
 bindCanvas();
 bindKeyboard();
-ui.render(state, profile, selectedTowerId);
+renderUi();
 if (!profile.tutorialSeen) {
   ui.showTutorial();
 }
@@ -71,7 +77,10 @@ function bindCanvas() {
     const { col, row } = getCanvasCell(event);
     const tower = towerAt(state, col, row);
 
-    if (tower) {
+    if (tower && event.shiftKey) {
+      selectedTowerId = tower.id;
+      cycleTowerTargetMode(state, tower.id);
+    } else if (tower) {
       selectedTowerId = tower.id;
       if (!upgradeTower(state, tower.id)) {
         state.message = `${TOWER_TYPES[tower.typeId].name} seleccionado. Necesitas mas energia para mejorarlo.`;
@@ -84,7 +93,7 @@ function bindCanvas() {
     }
 
     processEvents();
-    ui.render(state, profile, selectedTowerId);
+    renderUi();
   });
 }
 
@@ -99,6 +108,18 @@ function bindKeyboard() {
       event.preventDefault();
       startWaveFromInput();
     }
+
+    if (event.key.toLowerCase() === "p") {
+      togglePause();
+    }
+
+    if (event.key.toLowerCase() === "f") {
+      toggleSpeed();
+    }
+
+    if (event.key.toLowerCase() === "t") {
+      changeSelectedTargetMode();
+    }
   });
 }
 
@@ -107,13 +128,16 @@ function loop(timestamp) {
     lastTimestamp = timestamp;
   }
 
-  const deltaSeconds = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+  const rawDeltaSeconds = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+  const deltaSeconds = rawDeltaSeconds * speedMultiplier;
   lastTimestamp = timestamp;
   const wasActive = state.activeWave;
 
-  updateGame(state, deltaSeconds);
-  updateEffects(deltaSeconds);
-  processEvents();
+  if (!isPaused) {
+    updateGame(state, deltaSeconds);
+    processEvents();
+  }
+  updateEffects(rawDeltaSeconds);
 
   if (wasActive && !state.activeWave && state.wave > 0 && rewardPendingForWave !== state.wave) {
     rewardPendingForWave = state.wave;
@@ -126,7 +150,7 @@ function loop(timestamp) {
   }
 
   renderer.render(state, { selectedTowerId, effects });
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
   requestAnimationFrame(loop);
 }
 
@@ -139,7 +163,7 @@ function startWaveFromInput() {
   }
   startNextWave(state);
   processEvents();
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function restartGame() {
@@ -149,8 +173,10 @@ function restartGame() {
   rewardPendingForWave = 0;
   effects = [];
   runRecorded = false;
+  isPaused = false;
+  speedMultiplier = 1;
   ui.hideRewards();
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function chooseDifficulty(difficultyId) {
@@ -160,18 +186,18 @@ function chooseDifficulty(difficultyId) {
     saveProfile(profile);
   }
   processEvents();
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function selectTower(towerId) {
   if (!isTowerUnlocked(state, towerId)) {
     state.message = `${TOWER_TYPES[towerId].name} todavia esta bloqueada.`;
-    ui.render(state, profile, selectedTowerId);
+    renderUi();
     return;
   }
   state.selectedTowerType = towerId;
   selectedTowerId = null;
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function chooseReward(rewardId) {
@@ -181,18 +207,46 @@ function chooseReward(rewardId) {
   }
   ui.hideRewards();
   processEvents();
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function toggleMute() {
   profile = setMuted(profile, !profile.muted);
   sound.setMuted(profile.muted);
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
 }
 
 function completeTutorial() {
   profile = markTutorialSeen(profile);
-  ui.render(state, profile, selectedTowerId);
+  renderUi();
+}
+
+function togglePause() {
+  if (state.lives <= 0) {
+    return;
+  }
+  isPaused = !isPaused;
+  state.message = isPaused ? "Simulacion pausada. Pulsa P o Continuar para seguir." : "Simulacion reanudada.";
+  renderUi();
+}
+
+function toggleSpeed() {
+  const speeds = [1, 2, 3];
+  const currentIndex = speeds.indexOf(speedMultiplier);
+  speedMultiplier = speeds[(currentIndex + 1) % speeds.length];
+  state.message = `Velocidad de simulacion x${speedMultiplier}.`;
+  renderUi();
+}
+
+function changeSelectedTargetMode() {
+  if (!selectedTowerId) {
+    state.message = "Selecciona una torre para cambiar su prioridad.";
+    renderUi();
+    return;
+  }
+  cycleTowerTargetMode(state, selectedTowerId);
+  processEvents();
+  renderUi();
 }
 
 function getCanvasCell(event) {
@@ -243,6 +297,10 @@ function processEvents() {
       });
     }
   });
+}
+
+function renderUi() {
+  ui.render(state, profile, selectedTowerId, { isPaused, speedMultiplier });
 }
 
 function updateEffects(deltaSeconds) {

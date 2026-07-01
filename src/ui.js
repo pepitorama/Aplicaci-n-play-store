@@ -1,6 +1,7 @@
 import {
   DIFFICULTY_PRESETS,
   ENEMY_TYPES,
+  TARGET_MODES,
   TOWER_TYPES,
   getUpgradeCost,
   getWaveProgress,
@@ -31,6 +32,9 @@ export function createUi(elements, callbacks) {
   elements.startWave.addEventListener("click", callbacks.onStartWave);
   elements.restart.addEventListener("click", callbacks.onRestart);
   elements.muteToggle.addEventListener("click", callbacks.onToggleMute);
+  elements.pauseToggle.addEventListener("click", callbacks.onTogglePause);
+  elements.speedToggle.addEventListener("click", callbacks.onToggleSpeed);
+  elements.targetToggle.addEventListener("click", callbacks.onTargetMode);
   elements.tutorialNext.addEventListener("click", () => {
     tutorialIndex += 1;
     if (tutorialIndex >= TUTORIAL_STEPS.length) {
@@ -54,8 +58,8 @@ export function createUi(elements, callbacks) {
     hideTutorial() {
       hideTutorial(elements);
     },
-    render(state, profile, selectedTowerId) {
-      renderHud(elements, state, profile, selectedTowerId);
+    render(state, profile, selectedTowerId, session = {}) {
+      renderHud(elements, state, profile, selectedTowerId, session);
       const nextDifficultySignature = `${state.difficultyId}:${state.wave}:${state.towers.length}:${state.activeWave}`;
       if (nextDifficultySignature !== difficultySignature) {
         renderDifficultyCards(elements, state, callbacks.onDifficulty);
@@ -92,6 +96,9 @@ export function collectUiElements() {
     difficultyCards: document.querySelector("#difficulty-cards"),
     startWave: document.querySelector("#start-wave"),
     restart: document.querySelector("#restart"),
+    pauseToggle: document.querySelector("#pause-toggle"),
+    speedToggle: document.querySelector("#speed-toggle"),
+    targetToggle: document.querySelector("#target-toggle"),
     muteToggle: document.querySelector("#mute-toggle"),
     rewardPanel: document.querySelector("#reward-panel"),
     rewardCards: document.querySelector("#reward-cards"),
@@ -107,7 +114,7 @@ export function collectUiElements() {
   };
 }
 
-function renderHud(elements, state, profile, selectedTowerId) {
+function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.money.textContent = state.money;
   elements.lives.textContent = state.lives;
   elements.wave.textContent = state.wave;
@@ -118,6 +125,10 @@ function renderHud(elements, state, profile, selectedTowerId) {
   elements.startWave.disabled = state.activeWave || state.enemies.length > 0 || state.lives <= 0;
   elements.preview.innerHTML = previewHtml(state);
   elements.muteToggle.textContent = profile.muted ? "Sonido: OFF" : "Sonido: ON";
+  elements.pauseToggle.textContent = session.isPaused ? "Continuar" : "Pausar";
+  elements.pauseToggle.disabled = state.lives <= 0;
+  elements.speedToggle.textContent = `Velocidad x${session.speedMultiplier || 1}`;
+  elements.targetToggle.disabled = !selectedTowerId;
 
   const progress = getWaveProgress(state);
   elements.waveProgressBar.style.width = `${Math.round(progress * 100)}%`;
@@ -127,9 +138,11 @@ function renderHud(elements, state, profile, selectedTowerId) {
 
   const selected = state.towers.find((tower) => tower.id === selectedTowerId);
   if (selected) {
-    elements.selectedInfo.textContent = `${TOWER_TYPES[selected.typeId].name} nivel ${selected.level}. Upgrade: ${getUpgradeCost(selected)} energia.`;
+    elements.targetToggle.textContent = `Prioridad: ${TARGET_MODES[selected.targetMode || "first"].name}`;
+    elements.selectedInfo.textContent = `${TOWER_TYPES[selected.typeId].name} nivel ${selected.level}. Upgrade: ${getUpgradeCost(selected)} energia. Prioridad: ${TARGET_MODES[selected.targetMode || "first"].description}`;
   } else {
     const tower = TOWER_TYPES[state.selectedTowerType];
+    elements.targetToggle.textContent = "Prioridad";
     elements.selectedInfo.textContent = `Colocando ${tower.name}. Click en casilla libre; click en una torre para mejorar.`;
   }
 }

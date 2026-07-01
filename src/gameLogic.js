@@ -40,6 +40,29 @@ export const DIFFICULTY_PRESETS = {
   }
 };
 
+export const TARGET_MODES = {
+  first: {
+    id: "first",
+    name: "Primero",
+    description: "Ataca la amenaza mas avanzada."
+  },
+  strong: {
+    id: "strong",
+    name: "Fuerte",
+    description: "Prioriza la amenaza con mas vida."
+  },
+  fast: {
+    id: "fast",
+    name: "Rapido",
+    description: "Prioriza la amenaza mas veloz."
+  },
+  weak: {
+    id: "weak",
+    name: "Debil",
+    description: "Remata amenazas con poca vida."
+  }
+};
+
 export const PATH = [
   { col: 0, row: 4 },
   { col: 1, row: 4 },
@@ -301,6 +324,20 @@ export function towerAt(state, col, row) {
   return state.towers.find((tower) => tower.col === col && tower.row === row);
 }
 
+export function cycleTowerTargetMode(state, towerId) {
+  const tower = state.towers.find((item) => item.id === towerId);
+  if (!tower) {
+    return false;
+  }
+
+  const modeIds = Object.keys(TARGET_MODES);
+  const currentIndex = Math.max(0, modeIds.indexOf(tower.targetMode || "first"));
+  tower.targetMode = modeIds[(currentIndex + 1) % modeIds.length];
+  state.message = `${TOWER_TYPES[tower.typeId].name}: prioridad ${TARGET_MODES[tower.targetMode].name}.`;
+  addEvent(state, { type: "target-mode", towerType: tower.typeId, targetMode: tower.targetMode, x: tower.x, y: tower.y });
+  return true;
+}
+
 export function canPlaceTower(state, col, row, typeId = state.selectedTowerType) {
   const type = TOWER_TYPES[typeId];
   return Boolean(
@@ -329,6 +366,7 @@ export function placeTower(state, col, row, typeId = state.selectedTowerType) {
     cooldownRemaining: 0,
     lastShotTime: 0,
     targetId: null,
+    targetMode: "first",
     ...cellToPoint(col, row)
   });
   state.nextTowerId += 1;
@@ -603,16 +641,23 @@ function finishWaveIfNeeded(state) {
 }
 
 function findTarget(state, tower, range) {
-  let best = null;
-  for (const enemy of state.enemies) {
-    if (distance(tower, enemy) > range) {
-      continue;
-    }
-    if (!best || enemy.progress > best.progress) {
-      best = enemy;
-    }
+  const candidates = state.enemies.filter((enemy) => distance(tower, enemy) <= range);
+  if (candidates.length === 0) {
+    return null;
   }
-  return best;
+
+  const targetMode = tower.targetMode || "first";
+  if (targetMode === "strong") {
+    return candidates.reduce((best, enemy) => (enemy.hp > best.hp ? enemy : best));
+  }
+  if (targetMode === "fast") {
+    return candidates.reduce((best, enemy) => (enemy.speed > best.speed ? enemy : best));
+  }
+  if (targetMode === "weak") {
+    return candidates.reduce((best, enemy) => (enemy.hp < best.hp ? enemy : best));
+  }
+
+  return candidates.reduce((best, enemy) => (enemy.progress > best.progress ? enemy : best));
 }
 
 function distance(a, b) {

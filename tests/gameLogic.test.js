@@ -4,10 +4,13 @@ import assert from "node:assert/strict";
 import {
   DIFFICULTY_PRESETS,
   ENEMY_TYPES,
+  TARGET_MODES,
   TOWER_TYPES,
   applyReward,
   canPlaceTower,
+  cellToPoint,
   createGameState,
+  cycleTowerTargetMode,
   getWaveProgress,
   isTowerUnlocked,
   placeTower,
@@ -113,4 +116,51 @@ test("locked towers can be unlocked with blueprint rewards", () => {
   assert.equal(isTowerUnlocked(state, "tesla"), true);
   state.money = 500;
   assert.equal(placeTower(state, 1, 1, "tesla"), true);
+});
+
+test("tower target mode can cycle and prioritize strong enemies", () => {
+  const state = createGameState();
+  state.money = 500;
+  assert.equal(placeTower(state, 4, 4, "packet"), true);
+  const tower = state.towers[0];
+
+  assert.equal(tower.targetMode, "first");
+  assert.equal(cycleTowerTargetMode(state, tower.id), true);
+  assert.equal(tower.targetMode, "strong");
+  assert.equal(TARGET_MODES[tower.targetMode].name, "Fuerte");
+
+  const position = cellToPoint(4, 4);
+  state.enemies = [
+    {
+      id: 1,
+      typeId: "worm",
+      hp: 20,
+      maxHp: 20,
+      speed: 80,
+      reward: 1,
+      progress: 200,
+      slowTimer: 0,
+      slowFactor: 1,
+      leaked: false,
+      x: position.x + 20,
+      y: position.y
+    },
+    {
+      id: 2,
+      typeId: "botnet",
+      hp: 90,
+      maxHp: 90,
+      speed: 20,
+      reward: 1,
+      progress: 20,
+      slowTimer: 0,
+      slowFactor: 1,
+      leaked: false,
+      x: position.x + 30,
+      y: position.y
+    }
+  ];
+
+  updateGame(state, 0);
+  assert.equal(tower.targetId, 2);
 });
