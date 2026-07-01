@@ -1,0 +1,19 @@
+{
+  "name": "defiende-el-nucleo-pc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prototipo PWA de tower defense y simulacion de seguridad en PC.",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "tower-defense",
+    "pwa",
+    "simulacion",
+    "pc",
+    "play-store"
+  ],
+  "license": "UNLICENSED"
+}

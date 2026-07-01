@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Defiende el Nucleo PC</title>
+  <rect width="512" height="512" rx="108" fill="#08101f"/>
+  <path d="M96 160h320v192H96z" fill="#12203a" stroke="#4dffca" stroke-width="18"/>
+  <path d="M148 212h216v88H148z" fill="#40d9ff" opacity=".18"/>
+  <circle cx="256" cy="256" r="54" fill="#4dffca"/>
+  <path d="M256 176v-52M256 388v-52M176 256h-52M388 256h-52" stroke="#ffb84a" stroke-width="24" stroke-linecap="round"/>
+  <path d="M224 256l23 23 47-58" fill="none" stroke="#08101f" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

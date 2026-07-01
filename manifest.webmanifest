@@ -1,0 +1,19 @@
+{
+  "name": "Defiende el Nucleo PC",
+  "short_name": "Nucleo PC",
+  "description": "Tower defense y simulacion de seguridad para PC, preparado como PWA instalable.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#08101f",
+  "theme_color": "#08101f",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "education", "simulation"]
+}
