@@ -21,6 +21,8 @@ import { SoundEngine } from "./audio.js";
 import { createRenderer } from "./renderer.js";
 import { collectUiElements, createUi } from "./ui.js";
 import {
+  awardResearch,
+  buyResearchUpgrade,
   exportProfile,
   importProfile,
   loadProfile,
@@ -28,15 +30,25 @@ import {
   recordNewRun,
   saveProfile,
   setHighContrast,
+  setLargeText,
   setMuted,
   setPreferredMap,
+  setReducedMotion,
   updateProfileFromState
 } from "./storage.js";
-import { evaluateAchievements, evaluateMissions } from "./progression.js";
+import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "./progression.js";
+import { evaluateCampaign, getCampaignStatus } from "./campaign.js";
 
 const canvas = document.querySelector("#game-canvas");
 const renderer = createRenderer(canvas);
 const elements = collectUiElements();
+const GUIDED_TUTORIAL = [
+  { eventType: "place", message: "Bien: ahora inicia una oleada con Espacio o el boton Iniciar." },
+  { eventType: "wave-start", message: "Observa el ataque. Luego haz click en una torre para mejorarla." },
+  { eventType: "upgrade", message: "Upgrade aplicado. Prueba T o Shift+click para cambiar prioridad." },
+  { eventType: "target-mode", message: "Prioridad cambiada. Cuando necesites energia, vende una torre seleccionada." },
+  { eventType: "sell", message: "Tutorial guiado completado. Sigue con campaña, misiones e investigacion." }
+];
 
 let profile = loadProfile();
 let state = createStateFromProfile();
@@ -55,6 +67,8 @@ const ui = createUi(elements, {
   onRestart: () => restartGame(),
   onToggleMute: () => toggleMute(),
   onToggleContrast: () => toggleContrast(),
+  onToggleReducedMotion: () => toggleReducedMotion(),
+  onToggleLargeText: () => toggleLargeText(),
   onDifficulty: (difficultyId) => chooseDifficulty(difficultyId),
   onTowerSelect: (towerId) => selectTower(towerId),
   onReward: (rewardId) => chooseReward(rewardId),
@@ -66,20 +80,23 @@ const ui = createUi(elements, {
   onMap: (mapId) => chooseMap(mapId),
   onExportProgress: () => exportCurrentProgress(),
   onImportProgress: () => importProgressFromPrompt(),
-  onGameOverRetry: () => restartGame()
+  onGameOverRetry: () => restartGame(),
+  onCampaignStep: (step) => chooseCampaignStep(step),
+  onBuyResearch: (upgradeId) => buyResearch(upgradeId)
 });
 
 bindCanvas();
 bindKeyboard();
 applyAccessibilityPreferences();
 renderUi();
-if (!profile.tutorialSeen) {
-  ui.showTutorial();
-}
 requestAnimationFrame(loop);
 
 function createStateFromProfile() {
-  const nextState = createGameState({ difficultyId: profile.difficultyId, mapId: profile.mapId });
+  const nextState = createGameState({
+    difficultyId: profile.difficultyId,
+    mapId: profile.mapId,
+    upgrades: profile.researchUpgrades
+  });
   nextState.unlockedTowerTypes = Array.from(
     new Set([...(nextState.unlockedTowerTypes || []), ...(profile.unlockedTowerTypes || [])])
   );
@@ -162,6 +179,7 @@ function loop(timestamp) {
 
   if (state.lives <= 0 && !gameOverShown) {
     profile = syncProfileFromState();
+    profile = awardResearch(profile, state);
     ui.showGameOver(state, profile);
     gameOverShown = true;
   }
@@ -263,6 +281,54 @@ function toggleContrast() {
   renderUi();
 }
 
+function toggleReducedMotion() {
+  profile = setReducedMotion(profile, !profile.reducedMotion);
+  applyAccessibilityPreferences();
+  renderUi();
+}
+
+function toggleLargeText() {
+  profile = setLargeText(profile, !profile.largeText);
+  applyAccessibilityPreferences();
+  renderUi();
+}
+
+function chooseCampaignStep(step) {
+  if (!step.unlocked) {
+    state.message = "Completa la etapa anterior para desbloquear esta campana.";
+    renderUi();
+    return;
+  }
+  if (state.wave > 0 || state.towers.length > 0 || state.activeWave) {
+    state.message = "Reinicia la simulacion antes de cambiar a una etapa de campana.";
+    renderUi();
+    return;
+  }
+  chooseDifficulty(step.difficultyId);
+  chooseMap(step.mapId);
+  state.message = `Campana: ${step.title}. Objetivo: oleada ${step.goalWave}.`;
+  renderUi();
+}
+
+function buyResearch(upgradeId) {
+  if (state.wave > 0 || state.towers.length > 0 || state.activeWave) {
+    state.message = "La investigacion se compra antes de iniciar una simulacion.";
+    renderUi();
+    return;
+  }
+  const upgrade = RESEARCH_UPGRADES[upgradeId];
+  if (!upgrade) {
+    return;
+  }
+  const currentLevel = profile.researchUpgrades?.[upgradeId] || 0;
+  const cost = getResearchUpgradeCost(upgradeId, currentLevel);
+  profile = buyResearchUpgrade(profile, upgradeId, cost, upgrade.maxLevel);
+  state = createStateFromProfile();
+  selectedTowerId = null;
+  state.message = "Investigacion aplicada a la siguiente simulacion.";
+  renderUi();
+}
+
 function completeTutorial() {
   profile = markTutorialSeen(profile);
   renderUi();
@@ -329,6 +395,7 @@ function processEvents() {
   }
 
   sound.playEvents(events);
+  updateGuidedTutorial(events);
   events.forEach((event) => {
     if (event.type === "unlock" || event.type === "wave-complete") {
       profile = syncProfileFromState();
@@ -346,26 +413,53 @@ function processEvents() {
   });
 }
 
+function updateGuidedTutorial(events) {
+  if (profile.guidedTutorialComplete) {
+    return;
+  }
+
+  const stepIndex = profile.guidedTutorialStep || 0;
+  const step = GUIDED_TUTORIAL[stepIndex];
+  if (!step || !events.some((event) => event.type === step.eventType)) {
+    return;
+  }
+
+  const nextIndex = stepIndex + 1;
+  profile = {
+    ...profile,
+    guidedTutorialStep: nextIndex,
+    guidedTutorialComplete: nextIndex >= GUIDED_TUTORIAL.length
+  };
+  saveProfile(profile);
+  state.message = step.message;
+}
+
 function renderUi() {
   ui.render(state, profile, selectedTowerId, {
     isPaused,
     speedMultiplier,
-    missions: evaluateMissions(profile, state).missionStates
+    missions: evaluateMissions(profile, state).missionStates,
+    campaign: getCampaignStatus(profile),
+    researchUpgrades: RESEARCH_UPGRADES
   });
 }
 
 function applyAccessibilityPreferences() {
   document.body.classList.toggle("high-contrast", Boolean(profile.highContrast));
+  document.body.classList.toggle("reduced-motion", Boolean(profile.reducedMotion));
+  document.body.classList.toggle("large-text", Boolean(profile.largeText));
 }
 
 function syncProfileFromState() {
   let nextProfile = updateProfileFromState(profile, state);
   const achievementResult = evaluateAchievements(nextProfile, state);
   const missionResult = evaluateMissions(nextProfile, state);
+  const campaignResult = evaluateCampaign(nextProfile, state);
   nextProfile = {
     ...nextProfile,
     achievements: achievementResult.achievements,
-    completedMissions: missionResult.completedMissions
+    completedMissions: missionResult.completedMissions,
+    completedCampaignSteps: campaignResult.completedCampaignSteps
   };
   saveProfile(nextProfile);
   return nextProfile;

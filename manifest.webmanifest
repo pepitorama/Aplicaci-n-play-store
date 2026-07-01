@@ -7,6 +7,7 @@
   "background_color": "#08101f",
   "theme_color": "#08101f",
   "orientation": "landscape",
+  "scope": "./",
   "icons": [
     {
       "src": "./assets/icon.svg",
@@ -16,6 +17,22 @@
     }
   ],
   "categories": ["games", "education", "simulation"],
+  "screenshots": [
+    {
+      "src": "./assets/screenshot-home.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Pantalla inicial"
+    },
+    {
+      "src": "./assets/screenshot-game.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Tablero de defensa"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Jugar",

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title">
+  <title id="title">Pantalla inicial Defiende el Nucleo PC</title>
+  <rect width="1280" height="720" fill="#08101f"/>
+  <circle cx="220" cy="140" r="220" fill="#40d9ff" opacity=".18"/>
+  <circle cx="1010" cy="160" r="260" fill="#9f7cff" opacity=".14"/>
+  <rect x="270" y="150" width="740" height="420" rx="42" fill="#12203a" stroke="#4dffca" stroke-width="4"/>
+  <text x="640" y="255" text-anchor="middle" fill="#4dffca" font-family="Arial" font-size="28" font-weight="700">SIMULACION PC DEFENSIVA</text>
+  <text x="640" y="345" text-anchor="middle" fill="#eff7ff" font-family="Arial" font-size="74" font-weight="900">Defiende el Nucleo PC</text>
+  <text x="640" y="415" text-anchor="middle" fill="#9fb2c8" font-family="Arial" font-size="26">Mapas, torres, campaña, investigacion y progreso local</text>
+  <rect x="530" y="465" width="220" height="64" rx="20" fill="#4dffca"/>
+  <text x="640" y="506" text-anchor="middle" fill="#07101e" font-family="Arial" font-size="26" font-weight="900">Jugar</text>
+</svg>

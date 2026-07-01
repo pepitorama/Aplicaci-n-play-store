@@ -57,6 +57,8 @@
           <div><span id="wave-progress-bar"></span></div>
         </div>
 
+        <div id="resource-grid" class="resource-grid" aria-label="Recursos del PC"></div>
+
         <canvas id="game-canvas" aria-label="Mapa del juego" role="img"></canvas>
 
         <div class="message-row">
@@ -70,6 +72,8 @@
             <button id="restart" type="button">Reiniciar</button>
             <button id="mute-toggle" type="button">Sonido: ON</button>
             <button id="contrast-toggle" type="button">Contraste</button>
+            <button id="motion-toggle" type="button">Movimiento</button>
+            <button id="text-toggle" type="button">Texto</button>
           </div>
         </div>
       </section>
@@ -87,19 +91,34 @@
         </section>
 
         <section>
-          <h2>2. Elige defensa</h2>
+          <h2>2. Campaña</h2>
+          <div id="campaign-list" class="progress-list"></div>
+        </section>
+
+        <section>
+          <h2>3. Estrategia del mapa</h2>
+          <div id="strategy-panel" class="strategy-panel"></div>
+        </section>
+
+        <section>
+          <h2>4. Elige defensa</h2>
           <div id="tower-cards" class="tower-cards"></div>
           <p id="selected-info" class="hint"></p>
         </section>
 
         <section>
-          <h2>3. Lee la proxima amenaza</h2>
+          <h2>5. Lee la proxima amenaza</h2>
           <div id="wave-preview" class="preview-list"></div>
           <p class="hint">Pulsa espacio para iniciar. Usa teclas numericas para defensas, P pausa, F velocidad y T prioridad.</p>
         </section>
 
         <section class="attention-list">
-          <h2>4. Misiones y logros</h2>
+          <h2>6. Investigación permanente</h2>
+          <div id="research-list" class="progress-list"></div>
+        </section>
+
+        <section class="attention-list">
+          <h2>7. Misiones y logros</h2>
           <div id="mission-list" class="progress-list"></div>
           <div id="achievement-list" class="progress-list"></div>
           <div class="utility-actions">
@@ -109,7 +128,19 @@
         </section>
 
         <section class="attention-list">
-          <h2>5. Bucle de atencion</h2>
+          <h2>8. Ayuda y privacidad</h2>
+          <details>
+            <summary>Ayuda rapida</summary>
+            <p class="hint">Coloca defensas cerca de curvas, lee la vista previa y usa vender/prioridad cuando cambie la amenaza.</p>
+          </details>
+          <details>
+            <summary>Privacidad</summary>
+            <p class="hint">El progreso se guarda solo en este navegador con localStorage. No hay servidor ni datos personales.</p>
+          </details>
+        </section>
+
+        <section class="attention-list">
+          <h2>9. Bucle de atencion</h2>
           <ol>
             <li>Plan breve antes de la oleada.</li>
             <li>Feedback visual inmediato al disparar.</li>

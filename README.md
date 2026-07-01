@@ -48,7 +48,13 @@ Fuentes consultadas:
 - Tutorial inicial de tres pasos para reducir friccion en la primera partida.
 - Dificultad seleccionable: facil, normal y dificil.
 - Pantalla inicial con accesos a jugar, tutorial y progreso.
-- Modo de alto contraste para accesibilidad.
+- Modo de alto contraste, texto grande y movimiento reducido para accesibilidad.
+- Campana de 5 etapas con objetivos por mapa/dificultad.
+- Tutorial guiado por acciones reales: colocar, iniciar, mejorar, cambiar prioridad y vender.
+- Panel de estrategia por mapa con torres recomendadas, amenazas esperadas y consejos.
+- Recursos de PC simulados: CPU, RAM, Disco y Red.
+- Eventos de sistema: pico de trafico, actualizacion critica y escaneo de disco.
+- Investigacion permanente con puntos ganados por partida.
 - Selector de mapas con modificadores de recompensa, velocidad, oleadas y energia:
   - Nucleo clasico
   - Circuito largo
@@ -87,9 +93,11 @@ Fuentes consultadas:
 - Micro-recompensas tras cada oleada.
 - Ajuste de dificultad si la oleada anterior tuvo muchas fugas.
 - Guardado local de record, maxima oleada, estadisticas por mapa, partidas jugadas, dificultad y desbloqueos.
+- Records por dificultad, mejor racha perfecta y progreso de campana.
 - Sonidos sinteticos ligeros con opcion de silencio.
 - Feedback visual de rango, impactos, derrotas y alertas del nucleo.
 - PWA con manifest, icono y service worker offline.
+- Manifest PWA con screenshots placeholder y acceso directo "Jugar" para preparacion Play Store/TWA.
 
 ## Estructura
 
@@ -99,6 +107,7 @@ src/
   gameLogic.js   Motor: oleadas, torres, enemigos, economia y dificultad.
   main.js        Coordinador entre UI, motor, render, audio y persistencia.
   maps.js        Definiciones de mapas y rutas.
+  campaign.js    Etapas de campana y evaluacion de avance.
   progression.js Misiones, logros y evaluacion de progreso.
   renderer.js    Dibujo del canvas y efectos visuales.
   storage.js     Perfil local con localStorage.
@@ -137,6 +146,8 @@ npm test
 - Boton vender: vende la torre seleccionada.
 - Boton de sonido: activar/desactivar efectos.
 - Boton contraste: activa/desactiva alto contraste.
+- Boton movimiento: reduce animaciones.
+- Boton texto: aumenta tamano de texto.
 
 ## Siguientes pasos recomendados
 

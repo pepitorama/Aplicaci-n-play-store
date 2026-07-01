@@ -37,6 +37,18 @@ body.high-contrast {
   --line: rgba(255, 255, 255, 0.34);
 }
 
+body.large-text {
+  font-size: 112%;
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+}
+
 button {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -198,6 +210,43 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.resource-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.resource-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.resource-card strong {
+  display: block;
+  margin: 3px 0 6px;
+}
+
+.resource-card div {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.resource-card div span {
+  display: block;
+  height: 100%;
+  background: var(--resource-color);
+}
+
 .wave-progress div {
   height: 9px;
   overflow: hidden;
@@ -330,6 +379,41 @@ button:disabled {
 .progress-item.complete {
   border-color: rgba(77, 255, 202, 0.45);
   background: rgba(77, 255, 202, 0.06);
+}
+
+.strategy-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.strategy-panel p,
+.strategy-panel ul {
+  margin: 0;
+}
+
+.strategy-panel strong {
+  color: var(--text);
+}
+
+details {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+details + details {
+  margin-top: 10px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 800;
 }
 
 .progress-item.complete small {
@@ -526,6 +610,10 @@ kbd {
   }
 
   .hud-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .resource-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 

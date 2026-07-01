@@ -2,6 +2,7 @@ import {
   DIFFICULTY_PRESETS,
   ENEMY_TYPES,
   MAPS,
+  RESOURCE_TYPES,
   TARGET_MODES,
   TOWER_TYPES,
   getTowerSellValue,
@@ -10,7 +11,7 @@ import {
   isTowerUnlocked,
   previewWave
 } from "./gameLogic.js";
-import { ACHIEVEMENTS, getProfileSummary } from "./progression.js";
+import { ACHIEVEMENTS, getProfileSummary, getResearchUpgradeCost } from "./progression.js";
 
 const TUTORIAL_STEPS = [
   {
@@ -38,6 +39,8 @@ export function createUi(elements, callbacks) {
   elements.restart.addEventListener("click", callbacks.onRestart);
   elements.muteToggle.addEventListener("click", callbacks.onToggleMute);
   elements.contrastToggle.addEventListener("click", callbacks.onToggleContrast);
+  elements.motionToggle.addEventListener("click", callbacks.onToggleReducedMotion);
+  elements.textToggle.addEventListener("click", callbacks.onToggleLargeText);
   elements.pauseToggle.addEventListener("click", callbacks.onTogglePause);
   elements.speedToggle.addEventListener("click", callbacks.onToggleSpeed);
   elements.targetToggle.addEventListener("click", callbacks.onTargetMode);
@@ -101,11 +104,15 @@ export function createUi(elements, callbacks) {
         renderTowerCards(elements, state, callbacks.onTowerSelect);
         towerSignature = nextTowerSignature;
       }
-      const nextProgressSignature = `${profile.achievements?.join(",")}:${profile.completedMissions?.join(",")}:${state.totalKills}:${state.maxWaveReached}:${state.perfectWaves}`;
+      const nextProgressSignature = `${profile.achievements?.join(",")}:${profile.completedMissions?.join(",")}:${profile.completedCampaignSteps?.join(",")}:${profile.researchPoints}:${JSON.stringify(profile.researchUpgrades || {})}:${state.totalKills}:${state.maxWaveReached}:${state.perfectWaves}`;
       if (nextProgressSignature !== progressSignature) {
         renderProgress(elements, state, profile, session.missions || []);
+        renderCampaign(elements, session.campaign || [], callbacks.onCampaignStep);
+        renderResearch(elements, profile, session.researchUpgrades || {}, callbacks.onBuyResearch);
         progressSignature = nextProgressSignature;
       }
+      renderResources(elements, state);
+      renderStrategy(elements, state);
       renderProfile(elements, profile);
     },
     showRewards(state) {
@@ -137,6 +144,7 @@ export function collectUiElements() {
     bestScore: document.querySelector("#best-score"),
     maxWave: document.querySelector("#max-wave"),
     message: document.querySelector("#message"),
+    resourceGrid: document.querySelector("#resource-grid"),
     preview: document.querySelector("#wave-preview"),
     towerCards: document.querySelector("#tower-cards"),
     difficultyCards: document.querySelector("#difficulty-cards"),
@@ -153,12 +161,17 @@ export function collectUiElements() {
     sellTower: document.querySelector("#sell-tower"),
     muteToggle: document.querySelector("#mute-toggle"),
     contrastToggle: document.querySelector("#contrast-toggle"),
+    motionToggle: document.querySelector("#motion-toggle"),
+    textToggle: document.querySelector("#text-toggle"),
     rewardPanel: document.querySelector("#reward-panel"),
     rewardCards: document.querySelector("#reward-cards"),
     selectedInfo: document.querySelector("#selected-info"),
     profileInfo: document.querySelector("#profile-info"),
     missionList: document.querySelector("#mission-list"),
     achievementList: document.querySelector("#achievement-list"),
+    campaignList: document.querySelector("#campaign-list"),
+    researchList: document.querySelector("#research-list"),
+    strategyPanel: document.querySelector("#strategy-panel"),
     exportProgress: document.querySelector("#export-progress"),
     importProgress: document.querySelector("#import-progress"),
     gameOverPanel: document.querySelector("#game-over-panel"),
@@ -187,6 +200,8 @@ function renderHud(elements, state, profile, selectedTowerId, session) {
   elements.preview.innerHTML = previewHtml(state);
   elements.muteToggle.textContent = profile.muted ? "Sonido: OFF" : "Sonido: ON";
   elements.contrastToggle.textContent = profile.highContrast ? "Contraste: Alto" : "Contraste";
+  elements.motionToggle.textContent = profile.reducedMotion ? "Movimiento: Bajo" : "Movimiento";
+  elements.textToggle.textContent = profile.largeText ? "Texto: Grande" : "Texto";
   elements.pauseToggle.textContent = session.isPaused ? "Continuar" : "Pausar";
   elements.pauseToggle.disabled = state.lives <= 0;
   elements.speedToggle.textContent = `Velocidad x${session.speedMultiplier || 1}`;
@@ -298,6 +313,74 @@ function renderProgress(elements, state, profile, missions) {
       `;
     })
     .join("");
+}
+
+function renderCampaign(elements, campaignSteps, onCampaignStep) {
+  elements.campaignList.innerHTML = "";
+  campaignSteps.forEach((step) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `progress-item ${step.complete ? "complete" : ""}`;
+    button.disabled = !step.unlocked;
+    button.innerHTML = `
+      <strong>${step.title}</strong>
+      <span>${step.description}</span>
+      <small>${step.complete ? "Completada" : step.current ? "Actual" : step.unlocked ? `Objetivo oleada ${step.goalWave}` : "Bloqueada"}</small>
+    `;
+    button.addEventListener("click", () => onCampaignStep(step));
+    elements.campaignList.append(button);
+  });
+}
+
+function renderResearch(elements, profile, upgrades, onBuyResearch) {
+  elements.researchList.innerHTML = `<p class="hint">Puntos de investigacion: ${profile.researchPoints || 0}</p>`;
+  Object.values(upgrades).forEach((upgrade) => {
+    const level = profile.researchUpgrades?.[upgrade.id] || 0;
+    const cost = getResearchUpgradeCost(upgrade.id, level);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `progress-item ${level >= upgrade.maxLevel ? "complete" : ""}`;
+    button.disabled = level >= upgrade.maxLevel || (profile.researchPoints || 0) < cost;
+    button.innerHTML = `
+      <strong>${upgrade.title}</strong>
+      <span>${upgrade.description}</span>
+      <small>Nivel ${level}/${upgrade.maxLevel} | Coste ${cost}</small>
+    `;
+    button.addEventListener("click", () => onBuyResearch(upgrade.id));
+    elements.researchList.append(button);
+  });
+}
+
+function renderResources(elements, state) {
+  elements.resourceGrid.innerHTML = Object.entries(RESOURCE_TYPES)
+    .map(([resourceId, resource]) => {
+      const value = Math.max(0, Math.round(state.resources?.[resourceId] ?? 100));
+      return `
+        <div class="resource-card" style="--resource-color:${resource.color}">
+          <span>${resource.name}</span>
+          <strong>${value}</strong>
+          <div><span style="width:${Math.min(100, value)}%"></span></div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderStrategy(elements, state) {
+  const map = MAPS[state.mapId];
+  if (!map) {
+    elements.strategyPanel.innerHTML = "";
+    return;
+  }
+
+  const towers = map.recommendedTowers.map((towerId) => TOWER_TYPES[towerId]?.name || towerId).join(", ");
+  const enemies = map.featuredEnemies.map((enemyId) => ENEMY_TYPES[enemyId]?.name || enemyId).join(", ");
+  elements.strategyPanel.innerHTML = `
+    ${state.systemEvent ? `<p><strong>Evento activo:</strong> ${state.systemEvent.name} - ${state.systemEvent.description}</p>` : ""}
+    <p><strong>Torres recomendadas:</strong> ${towers}</p>
+    <p><strong>Amenazas esperadas:</strong> ${enemies}</p>
+    <ul>${map.strategyTips.map((tip) => `<li>${tip}</li>`).join("")}</ul>
+  `;
 }
 
 function renderRewards(elements, state, onReward) {

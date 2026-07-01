@@ -69,6 +69,37 @@ export { DEFAULT_MAP_ID, MAPS, getMapDefinition };
 
 export const PATH = getMapDefinition(DEFAULT_MAP_ID).path;
 
+export const RESOURCE_TYPES = {
+  cpu: { id: "cpu", name: "CPU", color: "#4dffca" },
+  ram: { id: "ram", name: "RAM", color: "#40d9ff" },
+  disk: { id: "disk", name: "Disco", color: "#ffb84a" },
+  net: { id: "net", name: "Red", color: "#9f7cff" }
+};
+
+export const SYSTEM_EVENTS = {
+  trafficSpike: {
+    id: "trafficSpike",
+    name: "Pico de trafico",
+    description: "La Red esta bajo presion: enemigos mas rapidos.",
+    enemySpeed: 1.12,
+    reward: 1
+  },
+  criticalUpdate: {
+    id: "criticalUpdate",
+    name: "Actualizacion critica",
+    description: "Parche temporal: mas recompensa por amenaza neutralizada.",
+    enemySpeed: 1,
+    reward: 1.12
+  },
+  diskScan: {
+    id: "diskScan",
+    name: "Escaneo de disco",
+    description: "El Disco limita rutas maliciosas: enemigos algo mas lentos.",
+    enemySpeed: 0.94,
+    reward: 0.98
+  }
+};
+
 export const TOWER_TYPES = {
   packet: {
     id: "packet",
@@ -202,7 +233,8 @@ export const ENEMY_TYPES = {
     speed: 47,
     reward: 9,
     color: "#ff5d73",
-    icon: "W"
+    icon: "W",
+    resourceDamage: { cpu: 5 }
   },
   botnet: {
     id: "botnet",
@@ -212,7 +244,8 @@ export const ENEMY_TYPES = {
     reward: 14,
     color: "#ff8d4f",
     damageReduction: 0.18,
-    icon: "B"
+    icon: "B",
+    resourceDamage: { net: 7 }
   },
   spyware: {
     id: "spyware",
@@ -221,7 +254,8 @@ export const ENEMY_TYPES = {
     speed: 66,
     reward: 12,
     color: "#e0ff5f",
-    icon: "S"
+    icon: "S",
+    resourceDamage: { ram: 6 }
   },
   ransomware: {
     id: "ransomware",
@@ -231,7 +265,8 @@ export const ENEMY_TYPES = {
     reward: 22,
     color: "#ff4fd8",
     damageReduction: 0.1,
-    icon: "R"
+    icon: "R",
+    resourceDamage: { disk: 10, cpu: 4 }
   },
   trojan: {
     id: "trojan",
@@ -240,7 +275,8 @@ export const ENEMY_TYPES = {
     speed: 42,
     reward: 13,
     color: "#ffcf5f",
-    icon: "T"
+    icon: "T",
+    resourceDamage: { ram: 5, disk: 4 }
   },
   rootkit: {
     id: "rootkit",
@@ -250,7 +286,8 @@ export const ENEMY_TYPES = {
     reward: 18,
     color: "#b86aff",
     damageReduction: 0.28,
-    icon: "K"
+    icon: "K",
+    resourceDamage: { cpu: 6, disk: 6 }
   },
   ddos: {
     id: "ddos",
@@ -259,7 +296,8 @@ export const ENEMY_TYPES = {
     speed: 82,
     reward: 8,
     color: "#6afff0",
-    icon: "D"
+    icon: "D",
+    resourceDamage: { net: 9 }
   },
   exploit: {
     id: "exploit",
@@ -269,7 +307,8 @@ export const ENEMY_TYPES = {
     reward: 16,
     leakDamage: 2,
     color: "#ff6a6a",
-    icon: "E"
+    icon: "E",
+    resourceDamage: { cpu: 8, ram: 8 }
   }
 };
 
@@ -398,9 +437,12 @@ export function pointOnPath(progress, path = PATH) {
 export function createGameState(options = {}) {
   const difficulty = getDifficultyPreset(options.difficultyId);
   const map = getMapDefinition(options.mapId);
+  const upgrades = normalizeUpgrades(options.upgrades);
   return {
-    money: difficulty.startingMoney + (map.modifiers?.startingBonus || 0),
-    lives: difficulty.startingLives,
+    money: difficulty.startingMoney + (map.modifiers?.startingBonus || 0) + upgrades.energyCache * 10,
+    lives: difficulty.startingLives + upgrades.coreIntegrity,
+    resources: createResources(upgrades),
+    upgrades,
     score: 0,
     wave: 0,
     focusStreak: 0,
@@ -419,6 +461,7 @@ export function createGameState(options = {}) {
     defeatedThisWave: 0,
     spawnTimer: 0,
     activeWave: false,
+    systemEvent: null,
     lastWaveLeaks: 0,
     totalKills: 0,
     killsByType: {},
@@ -615,9 +658,12 @@ export function startNextWave(state) {
   state.defeatedThisWave = 0;
   state.spawnTimer = 0;
   state.activeWave = true;
+  state.systemEvent = getSystemEventForWave(state.wave);
   state.lastWaveLeaks = 0;
-  state.message = `Oleada ${state.wave}: mira la vista previa y reacciona con upgrades.`;
-  addEvent(state, { type: "wave-start", wave: state.wave });
+  state.message = state.systemEvent
+    ? `Oleada ${state.wave}: ${state.systemEvent.name}. ${state.systemEvent.description}`
+    : `Oleada ${state.wave}: mira la vista previa y reacciona con upgrades.`;
+  addEvent(state, { type: "wave-start", wave: state.wave, systemEvent: state.systemEvent?.id });
   return true;
 }
 
@@ -692,8 +738,19 @@ function spawnEnemies(state, deltaSeconds) {
       typeId: next.typeId,
       hp: Math.round(type.hp * healthScale),
       maxHp: Math.round(type.hp * healthScale),
-      speed: type.speed * difficulty.enemySpeed * (map.modifiers?.enemySpeed || 1) * (1 + Math.min(0.22, state.wave * 0.018)),
-      reward: Math.round(type.reward * difficulty.reward * (map.modifiers?.reward || 1) * (1 + state.wave * 0.04)),
+      speed:
+        type.speed *
+        difficulty.enemySpeed *
+        (map.modifiers?.enemySpeed || 1) *
+        (state.systemEvent?.enemySpeed || 1) *
+        (1 + Math.min(0.22, state.wave * 0.018)),
+      reward: Math.round(
+        type.reward *
+          difficulty.reward *
+          (map.modifiers?.reward || 1) *
+          (state.systemEvent?.reward || 1) *
+          (1 + state.wave * 0.04)
+      ),
       progress: 0,
       slowTimer: 0,
       slowFactor: 1,
@@ -721,6 +778,7 @@ function updateEnemies(state, deltaSeconds) {
     if (enemy.progress >= pathLength(state.path || PATH) && !enemy.leaked) {
       enemy.leaked = true;
       state.lives -= ENEMY_TYPES[enemy.typeId].leakDamage || 1;
+      applyResourceDamage(state, ENEMY_TYPES[enemy.typeId].resourceDamage || {});
       state.lastWaveLeaks += 1;
       state.waveResolved += 1;
       state.focusStreak = 0;
@@ -747,7 +805,7 @@ function updateTowers(state, deltaSeconds) {
     }
 
     const levelMultiplier = 1 + (tower.level - 1) * 0.42;
-    const damage = getAppliedDamage(type, target, levelMultiplier);
+    const damage = getAppliedDamage(type, target, levelMultiplier * getUpgradeDamageMultiplier(state, tower.typeId));
     target.hp -= damage;
     if (type.slow) {
       target.slowFactor = type.slow;
@@ -810,7 +868,7 @@ function finishWaveIfNeeded(state) {
   if (state.lastWaveLeaks === 0) {
     state.focusStreak += 1;
     state.perfectWaves += 1;
-    const bonus = 20 + state.focusStreak * 6;
+    const bonus = 20 + state.focusStreak * 6 + (state.upgrades?.perfectBonus || 0) * 5;
     state.money += bonus;
     state.score += Math.round(bonus * 12 * getDifficultyPreset(state.difficultyId).score);
     state.message = `Oleada perfecta. Racha de foco x${state.focusStreak}: +${bonus} energia.`;
@@ -889,6 +947,50 @@ function getAppliedDamage(towerType, enemy, levelMultiplier) {
   return Math.max(1, Math.round(towerType.damage * levelMultiplier * (1 - reduction)));
 }
 
+function getUpgradeDamageMultiplier(state, towerTypeId) {
+  const upgrades = state.upgrades || {};
+  let multiplier = 1 + (upgrades.globalDamage || 0) * 0.03;
+  if (towerTypeId === "packet") {
+    multiplier += (upgrades.analyzerBoost || 0) * 0.05;
+  }
+  return multiplier;
+}
+
+function createResources(upgrades) {
+  const bonus = (upgrades.resourceHardening || 0) * 5;
+  return {
+    cpu: 100 + bonus,
+    ram: 100 + bonus,
+    disk: 100 + bonus,
+    net: 100 + bonus
+  };
+}
+
+function normalizeUpgrades(upgrades = {}) {
+  return {
+    energyCache: upgrades.energyCache || 0,
+    coreIntegrity: upgrades.coreIntegrity || 0,
+    analyzerBoost: upgrades.analyzerBoost || 0,
+    globalDamage: upgrades.globalDamage || 0,
+    perfectBonus: upgrades.perfectBonus || 0,
+    resourceHardening: upgrades.resourceHardening || 0
+  };
+}
+
+function applyResourceDamage(state, resourceDamage) {
+  Object.entries(resourceDamage).forEach(([resourceId, amount]) => {
+    if (state.resources?.[resourceId] === undefined) {
+      return;
+    }
+    state.resources[resourceId] = Math.max(0, state.resources[resourceId] - amount);
+  });
+
+  if (state.resources && Object.values(state.resources).some((value) => value <= 0)) {
+    state.lives = 0;
+    state.message = "Un recurso critico del PC colapso. Reinicia y ajusta la estrategia.";
+  }
+}
+
 function distance(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
@@ -912,6 +1014,19 @@ function getPathCellKeys(path) {
     }
   }
   return keys;
+}
+
+function getSystemEventForWave(wave) {
+  if (wave > 0 && wave % 5 === 0) {
+    return SYSTEM_EVENTS.criticalUpdate;
+  }
+  if (wave > 0 && wave % 4 === 0) {
+    return SYSTEM_EVENTS.diskScan;
+  }
+  if (wave > 0 && wave % 3 === 0) {
+    return SYSTEM_EVENTS.trafficSpike;
+  }
+  return null;
 }
 
 function addEvent(state, event) {

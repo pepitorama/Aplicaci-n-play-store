@@ -89,6 +89,51 @@ export const MISSIONS = {
   }
 };
 
+export const RESEARCH_UPGRADES = {
+  energyCache: {
+    id: "energyCache",
+    title: "Cache energetica",
+    description: "+10 energia inicial por nivel.",
+    maxLevel: 5,
+    cost: 2
+  },
+  coreIntegrity: {
+    id: "coreIntegrity",
+    title: "Integridad reforzada",
+    description: "+1 integridad inicial por nivel.",
+    maxLevel: 5,
+    cost: 2
+  },
+  analyzerBoost: {
+    id: "analyzerBoost",
+    title: "Firmas del Analizador",
+    description: "+5% dano del Analizador por nivel.",
+    maxLevel: 4,
+    cost: 3
+  },
+  globalDamage: {
+    id: "globalDamage",
+    title: "Optimizacion global",
+    description: "+3% dano global por nivel.",
+    maxLevel: 5,
+    cost: 4
+  },
+  perfectBonus: {
+    id: "perfectBonus",
+    title: "Protocolo perfecto",
+    description: "+5 energia en oleadas perfectas por nivel.",
+    maxLevel: 4,
+    cost: 3
+  },
+  resourceHardening: {
+    id: "resourceHardening",
+    title: "Blindaje de recursos",
+    description: "+5 a CPU/RAM/Disco/Red por nivel.",
+    maxLevel: 5,
+    cost: 3
+  }
+};
+
 export function evaluateAchievements(profile, state) {
   const completed = new Set(profile.achievements || []);
   const newlyCompleted = [];
@@ -133,6 +178,11 @@ export function getProfileSummary(profile) {
     missions: profile.completedMissions?.length || 0,
     maps: profile.mapsPlayed?.length || 0
   };
+}
+
+export function getResearchUpgradeCost(upgradeId, currentLevel = 0) {
+  const upgrade = RESEARCH_UPGRADES[upgradeId];
+  return upgrade ? upgrade.cost + currentLevel : Infinity;
 }
 
 function totalPlaced(state) {

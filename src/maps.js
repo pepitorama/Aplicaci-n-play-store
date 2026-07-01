@@ -12,6 +12,9 @@ export const MAPS = {
       waveSize: 1,
       startingBonus: 0
     },
+    recommendedTowers: ["packet", "firewall", "freezer"],
+    featuredEnemies: ["worm", "spyware", "botnet"],
+    strategyTips: ["Cubre las curvas centrales.", "Mejora una torre antes de abrir demasiadas posiciones."],
     path: [
       { col: 0, row: 4 },
       { col: 1, row: 4 },
@@ -38,6 +41,9 @@ export const MAPS = {
       waveSize: 1.05,
       startingBonus: 10
     },
+    recommendedTowers: ["detector", "tesla", "trap"],
+    featuredEnemies: ["trojan", "rootkit", "ransomware"],
+    strategyTips: ["Aprovecha el recorrido largo con rangos aumentados.", "El Detector escala muy bien en el centro."],
     path: [
       { col: 0, row: 2 },
       { col: 2, row: 2 },
@@ -64,6 +70,9 @@ export const MAPS = {
       waveSize: 1.08,
       startingBonus: 0
     },
+    recommendedTowers: ["freezer", "mirror", "firewall"],
+    featuredEnemies: ["spyware", "ddos", "exploit"],
+    strategyTips: ["Ralentiza antes de las curvas compactas.", "Cambia prioridades para rematar Exploits."],
     path: [
       { col: 0, row: 6 },
       { col: 2, row: 6 },
@@ -90,6 +99,9 @@ export const MAPS = {
       waveSize: 0.94,
       startingBonus: -5
     },
+    recommendedTowers: ["firewall", "antivirus", "freezer"],
+    featuredEnemies: ["botnet", "exploit", "rootkit"],
+    strategyTips: ["No gastes en demasiadas torres iniciales.", "Vender y reposicionar puede salvar la partida."],
     path: [
       { col: 0, row: 4 },
       { col: 2, row: 4 },
@@ -112,6 +124,9 @@ export const MAPS = {
       waveSize: 1.12,
       startingBonus: 15
     },
+    recommendedTowers: ["trap", "detector", "tesla"],
+    featuredEnemies: ["ddos", "trojan", "ransomware"],
+    strategyTips: ["La Trampa cubre grupos en la espiral.", "Rangos largos aprovechan el recorrido completo."],
     path: [
       { col: 0, row: 1 },
       { col: 12, row: 1 },
@@ -136,6 +151,9 @@ export const MAPS = {
       waveSize: 0.82,
       startingBonus: 5
     },
+    recommendedTowers: ["antivirus", "firewall", "mirror"],
+    featuredEnemies: ["ddos", "spyware", "exploit"],
+    strategyTips: ["Prioriza dano rapido.", "No esperes demasiado para iniciar upgrades."],
     path: [
       { col: 0, row: 5 },
       { col: 4, row: 5 },
@@ -156,6 +174,9 @@ export const MAPS = {
       waveSize: 1.05,
       startingBonus: -15
     },
+    recommendedTowers: ["freezer", "detector", "tesla"],
+    featuredEnemies: ["rootkit", "exploit", "ransomware"],
+    strategyTips: ["Cada fuga duele: controla velocidad.", "Usa Detector para cubrir dos carriles cercanos."],
     path: [
       { col: 0, row: 2 },
       { col: 5, row: 2 },

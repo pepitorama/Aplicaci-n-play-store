@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   DIFFICULTY_PRESETS,
   ENEMY_TYPES,
+  SYSTEM_EVENTS,
   TARGET_MODES,
   TOWER_TYPES,
   applyReward,
@@ -23,8 +24,19 @@ import {
   updateGame,
   upgradeTower
 } from "../src/gameLogic.js";
-import { exportProfile, importProfile, setHighContrast } from "../src/storage.js";
-import { evaluateAchievements, evaluateMissions } from "../src/progression.js";
+import {
+  awardResearch,
+  buyResearchUpgrade,
+  exportProfile,
+  importProfile,
+  recordNewRun,
+  setHighContrast,
+  setLargeText,
+  setReducedMotion,
+  updateProfileFromState
+} from "../src/storage.js";
+import { evaluateAchievements, evaluateMissions, getResearchUpgradeCost, RESEARCH_UPGRADES } from "../src/progression.js";
+import { evaluateCampaign, getCampaignStatus } from "../src/campaign.js";
 import { getMapDefinition } from "../src/maps.js";
 
 test("places a tower only on valid build cells and charges energy", () => {
@@ -272,4 +284,76 @@ test("profile stores high contrast preference", () => {
   const profile = setHighContrast({ highContrast: false }, true);
 
   assert.equal(profile.highContrast, true);
+});
+
+test("pc resources are reduced by enemy-specific leaks", () => {
+  const state = createGameState();
+  const initialCpu = state.resources.cpu;
+  state.enemies = [
+    {
+      id: 1,
+      typeId: "rootkit",
+      hp: ENEMY_TYPES.rootkit.hp,
+      maxHp: ENEMY_TYPES.rootkit.hp,
+      speed: 9999,
+      reward: 0,
+      progress: 0,
+      slowTimer: 0,
+      slowFactor: 1,
+      leaked: false,
+      ...cellToPoint(0, 4)
+    }
+  ];
+  state.activeWave = true;
+  state.waveTotal = 1;
+
+  updateGame(state, 1);
+  assert.ok(state.resources.cpu < initialCpu);
+});
+
+test("research upgrades affect starting state and can be purchased", () => {
+  const baseProfile = { researchPoints: 10, researchUpgrades: {} };
+  const cost = getResearchUpgradeCost("energyCache", 0);
+  const upgradedProfile = buyResearchUpgrade(baseProfile, "energyCache", cost, RESEARCH_UPGRADES.energyCache.maxLevel);
+  const state = createGameState({ upgrades: upgradedProfile.researchUpgrades });
+
+  assert.equal(upgradedProfile.researchUpgrades.energyCache, 1);
+  assert.ok(state.money > createGameState().money);
+});
+
+test("campaign steps unlock after reaching their objective", () => {
+  const profile = { completedCampaignSteps: [] };
+  const state = createGameState({ difficultyId: "easy", mapId: "classic" });
+  state.maxWaveReached = 3;
+  const result = evaluateCampaign(profile, state);
+  const status = getCampaignStatus({ completedCampaignSteps: result.completedCampaignSteps });
+
+  assert.ok(result.completedCampaignSteps.includes("boot"));
+  assert.equal(status[1].unlocked, true);
+});
+
+test("profile records difficulty, map runs and accessibility preferences", () => {
+  let profile = { perMapStats: {}, recordsByDifficulty: {}, totalRuns: 0 };
+  profile = recordNewRun(profile, "hard", "expertBus");
+  const state = createGameState({ difficultyId: "hard", mapId: "expertBus" });
+  state.score = 3200;
+  state.maxWaveReached = 6;
+  profile = updateProfileFromState(profile, state);
+  profile = awardResearch(profile, state);
+  profile = setReducedMotion(profile, true);
+  profile = setLargeText(profile, true);
+
+  assert.equal(profile.perMapStats.expertBus.runs, 1);
+  assert.equal(profile.recordsByDifficulty.hard.bestScore, 3200);
+  assert.ok(profile.researchPoints > 0);
+  assert.equal(profile.reducedMotion, true);
+  assert.equal(profile.largeText, true);
+});
+
+test("system events activate on scheduled waves", () => {
+  const state = createGameState();
+  state.wave = 2;
+
+  startNextWave(state);
+  assert.equal(state.systemEvent.id, SYSTEM_EVENTS.trafficSpike.id);
 });

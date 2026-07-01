@@ -5,8 +5,11 @@ export const DEFAULT_PROFILE = {
   maxWave: 0,
   totalRuns: 0,
   tutorialSeen: false,
+  guidedTutorialComplete: false,
   muted: false,
   highContrast: false,
+  reducedMotion: false,
+  largeText: false,
   difficultyId: "normal",
   mapId: "classic",
   unlockedTowerTypes: ["packet", "firewall", "freezer"],
@@ -14,8 +17,13 @@ export const DEFAULT_PROFILE = {
   completedMissions: [],
   mapsPlayed: [],
   perMapStats: {},
+  recordsByDifficulty: {},
+  bestPerfectStreak: 0,
   killsByType: {},
-  totalKills: 0
+  totalKills: 0,
+  researchPoints: 0,
+  researchUpgrades: {},
+  completedCampaignSteps: []
 };
 
 export function loadProfile() {
@@ -65,6 +73,14 @@ export function updateProfileFromState(profile, state) {
       runs: previousMapStats.runs || 0
     }
   };
+  const previousDifficultyStats = profile.recordsByDifficulty?.[state.difficultyId] || {};
+  const recordsByDifficulty = {
+    ...(profile.recordsByDifficulty || {}),
+    [state.difficultyId]: {
+      bestScore: Math.max(previousDifficultyStats.bestScore || 0, state.score || 0),
+      maxWave: Math.max(previousDifficultyStats.maxWave || 0, state.maxWaveReached || state.wave || 0)
+    }
+  };
   const nextProfile = {
     ...profile,
     bestScore: Math.max(profile.bestScore || 0, state.score || 0),
@@ -74,6 +90,8 @@ export function updateProfileFromState(profile, state) {
     unlockedTowerTypes: unlocked,
     mapsPlayed,
     perMapStats,
+    recordsByDifficulty,
+    bestPerfectStreak: Math.max(profile.bestPerfectStreak || 0, state.focusStreak || 0, state.perfectWaves || 0),
     killsByType,
     totalKills: Math.max(profile.totalKills || 0, state.totalKills || 0)
   };
@@ -114,6 +132,47 @@ export function setMuted(profile, muted) {
 
 export function setHighContrast(profile, highContrast) {
   const nextProfile = { ...profile, highContrast };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function setReducedMotion(profile, reducedMotion) {
+  const nextProfile = { ...profile, reducedMotion };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function setLargeText(profile, largeText) {
+  const nextProfile = { ...profile, largeText };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function awardResearch(profile, state) {
+  const gained = Math.max(1, Math.floor((state.maxWaveReached || 0) / 2) + Math.floor((state.score || 0) / 1500));
+  const nextProfile = {
+    ...profile,
+    researchPoints: (profile.researchPoints || 0) + gained,
+    lastResearchAward: gained
+  };
+  saveProfile(nextProfile);
+  return nextProfile;
+}
+
+export function buyResearchUpgrade(profile, upgradeId, cost, maxLevel) {
+  const currentLevel = profile.researchUpgrades?.[upgradeId] || 0;
+  if (currentLevel >= maxLevel || (profile.researchPoints || 0) < cost) {
+    return profile;
+  }
+
+  const nextProfile = {
+    ...profile,
+    researchPoints: (profile.researchPoints || 0) - cost,
+    researchUpgrades: {
+      ...(profile.researchUpgrades || {}),
+      [upgradeId]: currentLevel + 1
+    }
+  };
   saveProfile(nextProfile);
   return nextProfile;
 }

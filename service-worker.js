@@ -1,4 +1,4 @@
-const CACHE_NAME = "defiende-nucleo-pc-v4";
+const CACHE_NAME = "defiende-nucleo-pc-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,11 +8,14 @@ const ASSETS = [
   "./src/audio.js",
   "./src/gameLogic.js",
   "./src/maps.js",
+  "./src/campaign.js",
   "./src/progression.js",
   "./src/renderer.js",
   "./src/storage.js",
   "./src/ui.js",
-  "./assets/icon.svg"
+  "./assets/icon.svg",
+  "./assets/screenshot-home.svg",
+  "./assets/screenshot-game.svg"
 ];
 
 self.addEventListener("install", (event) => {
